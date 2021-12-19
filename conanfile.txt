@@ -1,6 +1,7 @@
 [requires]
 boost/1.77.0
 catch2/2.13.7
+confu_json/0.0.7@werto87/stable
 [generators]
 cmake
 [options]

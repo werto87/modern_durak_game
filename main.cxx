@@ -1,9 +1,10 @@
 #include "src/server/server.hxx"
+#include <boost/json/src.hpp>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
 
-auto const DEFAULT_PORT = u_int16_t{ 55555 };
+auto const DEFAULT_PORT = u_int16_t{ 44444 };
 
 int
 main ()
