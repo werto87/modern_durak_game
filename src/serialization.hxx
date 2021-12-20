@@ -35,12 +35,13 @@
 #include <string>
 #include <variant>
 
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOption, (bool, someBool) (std::string, someString)) // TODO-TEMPLATE add game options
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), UnhandledMessageError, (std::string, msg) (std::string, error))
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), StartGame, )
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), StartGame, (std::vector<std::string>, players) (shared_class::GameOption, gameOption))
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), StartGameError, (std::string, msg))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameStarted, )
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), LeaveGame, )
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOver, )
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), ChangeRating, (std::vector<std::string>, winners) (std::vector<std::string>, losers) (std::vector<std::string>, draws))
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOver, (bool, ratedGame) (std::vector<std::string>, winners) (std::vector<std::string>, losers) (std::vector<std::string>, draws))
 
 // clang-format off
 namespace shared_class{

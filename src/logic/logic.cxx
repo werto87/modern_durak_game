@@ -25,6 +25,30 @@ objectToStringWithObjectName (TypeToSend const &typeToSend)
   return ss.str ();
 }
 
+template <typename T>
+T
+stringToObject (std::string const &objectAsString)
+{
+  T t{};
+  boost::json::error_code ec{};
+  auto jsonValue = confu_json::read_json (objectAsString, ec);
+  if (ec)
+    {
+      std::cerr << "error while parsing string: error code: " << ec << std::endl;
+      std::cerr << "error while parsing string: stringToParse: " << objectAsString << std::endl;
+    }
+  else
+    {
+      t = confu_json::to_object<T> (jsonValue);
+    }
+  return t;
+}
+
+void
+startGame (std::string const &msg)
+{
+}
+
 void
 handleMessage (std::string const &msg, std::list<std::shared_ptr<User> > &, std::shared_ptr<User> user)
 {
