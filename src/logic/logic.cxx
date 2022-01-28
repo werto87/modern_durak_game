@@ -11,7 +11,7 @@ std::set<std::string>
 getApiTypes ()
 {
   auto result = std::set<std::string>{};
-  boost::hana::for_each (shared_class::sharedClasses, [&] (const auto &x) { result.insert (confu_json::type_name<typename std::decay<decltype (x)>::type> ()); });
+  boost::hana::for_each (matchmaking_game::sharedClasses, [&] (const auto &x) { result.insert (confu_json::type_name<typename std::decay<decltype (x)>::type> ()); });
   return result;
 }
 auto const apiTypes = getApiTypes ();
@@ -60,11 +60,24 @@ handleMessage (std::string const &msg, std::list<std::shared_ptr<User> > &, std:
       auto const &objectAsString = splitMesssage.at (1);
       if (not apiTypes.contains (typeToSearch))
         {
-          user->sendMessageToUser (objectToStringWithObjectName (shared_class::UnhandledMessageError{ msg, "Message type is not handled by server api" }));
+          user->sendMessageToUser (objectToStringWithObjectName (matchmaking_game::UnhandledMessageError{ msg, "Message type is not handled by server api" }));
         }
       else if (typeToSearch == "StartGame")
         {
-          user->sendMessageToUser (objectToStringWithObjectName (shared_class::GameStarted{}));
+          user->sendMessageToUser (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{}));
         }
+      else if (typeToSearch == "LeaveGameServer")
+        {
+
+          user->sendMessageToUser (objectToStringWithObjectName (matchmaking_game::LeaveGameSuccess{}));
+        }
+      else
+        {
+          user->sendMessageToUser ("Message type not supported. Check for. Message should have exactly one |");
+        }
+    }
+  else
+    {
+      user->sendMessageToUser ("NOT HANDLED MESSAGE. Check for. Message should have exactly one |");
     }
 }

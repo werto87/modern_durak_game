@@ -1,3 +1,4 @@
+#include "src/game/logic/durakStateMachine.hxx"
 #include "src/server/server.hxx"
 #include <boost/json/src.hpp>
 #include <exception>
