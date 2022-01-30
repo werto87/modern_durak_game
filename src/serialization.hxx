@@ -110,11 +110,42 @@ BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOptionError, (std::string, e
 // MODERN DURAK TYPES //////////////////////////////////////////////////////////////////////////////////////////////
 
 // clang-format off
-namespace matchmaking_game{
+namespace shared_class{
     // TODO-TEMPLATE add new type to handle in server
 static boost::hana::tuple<
-  LeaveGameServer,
-  StartGame
+DurakAttack,
+DurakAttackSuccess,
+DurakAttackError,
+DurakDefend,
+DurakDefendSuccess,
+DurakDefendError,
+DurakAttackPass,
+DurakAttackPassSuccess,
+DurakAttackPassError,
+DurakAssistPass,
+DurakAssistPassSuccess,
+DurakAssistPassError,
+DurakDefendPass,
+DurakDefendPassSuccess,
+DurakDefendPassError,
+DurakAskDefendWantToTakeCards,
+DurakAskDefendWantToTakeCardsAnswer,
+DurakAskDefendWantToTakeCardsAnswerSuccess,
+DurakAskDefendWantToTakeCardsAnswerError,
+DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards,
+DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCardsAnswer,
+DurakDefendWantsToTakeCardsFromTableDoneAddingCards,
+DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess,
+DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError,
+DurakGameOverWon,
+DurakGameOverLose,
+DurakGameOverDraw,
+DurakLeaveGame,
+DurakLeaveGameError,
+DurakTimers,
+DurakAllowedMoves,
+SetTimerOption,
+SetTimerOptionError
   >  const sharedClasses{};
 }
 // clang-format on

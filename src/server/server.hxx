@@ -1,24 +1,19 @@
 #ifndef AC7BAF85_A15E_49E8_AD93_D8065253C6DF
 #define AC7BAF85_A15E_49E8_AD93_D8065253C6DF
 
+// #include "src/game/logic/gameMachine.hxx"
+#include "src/game/logic/game.hxx"
 #include "user.hxx"
 #include <list>
 
 class Server
 {
 public:
-  Server (boost::asio::ip::tcp::endpoint const &endpoint);
-
-  boost::asio::awaitable<void> listener ();
+  boost::asio::awaitable<void> listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &endpoint);
+  boost::asio::awaitable<void> listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoint);
 
 private:
-  void removeUser (std::list<std::shared_ptr<User> >::iterator user);
-  boost::asio::awaitable<std::string> my_read (Websocket &ws_);
-
-  boost::asio::awaitable<void> readFromClient (std::list<std::shared_ptr<User> >::iterator user, Websocket &connection);
-
-  boost::asio::ip::tcp::endpoint _endpoint{};
-  std::list<std::shared_ptr<User> > users{};
+  std::list<Game> games{};
 };
 
 #endif /* AC7BAF85_A15E_49E8_AD93_D8065253C6DF */

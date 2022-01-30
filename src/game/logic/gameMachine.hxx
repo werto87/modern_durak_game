@@ -3,7 +3,7 @@
 #include "durak/game.hxx"
 #include "src/game/gameUser.hxx"
 #include "src/game/logic/durakStateMachine.hxx"
-#include "src/server/gameLobby.hxx"
+#include "src/server/user.hxx"
 #include <algorithm>
 #include <boost/asio/system_timer.hpp>
 #include <functional>
@@ -11,7 +11,7 @@
 #include <range/v3/all.hpp>
 struct GameMachine
 {
-  GameMachine (std::vector<std::shared_ptr<User>> users, boost::asio::io_context &io_context, TimerOption const &timerOption, std::function<void ()> gameOver, GameLobby::LobbyType lobbyType) : durakStateMachine{ my_logger{}, PassAttackAndAssist{}, _game, _gameUsers, timerOption, gameOver, lobbyType }
+  GameMachine (std::vector<std::shared_ptr<User> > users, boost::asio::io_context &io_context, TimerOption const &timerOption, std::function<void ()> gameOver, GameLobby::LobbyType lobbyType) : durakStateMachine{ my_logger{}, PassAttackAndAssist{}, _game, _gameUsers, timerOption, gameOver, lobbyType }
   {
     ranges::transform (users, ranges::back_inserter (_gameUsers), [&io_context] (auto const &user) { return GameUser{ user, std::make_shared<boost::asio::system_timer> (io_context) }; });
     auto names = std::vector<std::string>{};
@@ -21,7 +21,7 @@ struct GameMachine
     durakStateMachine.process_event (start{});
   }
 
-  GameMachine (durak::Game const &game, std::vector<std::shared_ptr<User>> &users, boost::asio::io_context &io_context, TimerOption const &timerOption, std::function<void ()> gameOver, GameLobby::LobbyType lobbyType) : durakStateMachine{ my_logger{}, PassAttackAndAssist{}, _game, _gameUsers, timerOption, gameOver, lobbyType }, _game{ game }
+  GameMachine (durak::Game const &game, std::vector<std::shared_ptr<User> > &users, boost::asio::io_context &io_context, TimerOption const &timerOption, std::function<void ()> gameOver, GameLobby::LobbyType lobbyType) : durakStateMachine{ my_logger{}, PassAttackAndAssist{}, _game, _gameUsers, timerOption, gameOver, lobbyType }, _game{ game }
   {
     ranges::transform (users, ranges::back_inserter (_gameUsers), [&io_context] (auto const &user) { return GameUser{ user, std::make_shared<boost::asio::system_timer> (io_context) }; });
     durakStateMachine.process_event (initTimer{});

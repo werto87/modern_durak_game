@@ -50,37 +50,55 @@ allowedMoves (durak::Game const &game, durak::PlayerRole playerRole, std::option
 }
 
 void
-sendAvailableMoves (durak::Game const &game, std::vector<GameUser> const &_gameUsers, AllowedMoves const &removeFromAllowedMoves, AllowedMoves const &addToAllowedMoves)
+sendAvailableMoves (durak::Game const &game, std::vector<User> const &users, AllowedMoves const &removeFromAllowedMoves, AllowedMoves const &addToAllowedMoves)
 {
-  // TODO sendAvailableMoves
-  // if (auto attackingPlayer = game.getAttackingPlayer ())
-  //   {
-  //     if (auto attackingUser = ranges::find_if (_gameUsers, [attackingPlayerName = attackingPlayer->id] (GameUser const &gameUser) { return gameUser._user->accountName == attackingPlayerName; }); attackingUser != _gameUsers.end ())
-  //       {
-  //         attackingUser->_user->sendMessageToUser (objectToStringWithObjectName (allowedMoves (game, durak::PlayerRole::attack, removeFromAllowedMoves.attack, addToAllowedMoves.attack)));
-  //       }
-  //   }
-  // if (auto assistingPlayer = game.getAssistingPlayer ())
-  //   {
-  //     if (auto assistingUser = ranges::find_if (_gameUsers, [assistingPlayerName = assistingPlayer->id] (GameUser const &gameUser) { return gameUser._user->accountName == assistingPlayerName; }); assistingUser != _gameUsers.end ())
-  //       {
-  //         assistingUser->_user->sendMessageToUser (objectToStringWithObjectName (allowedMoves (game, durak::PlayerRole::assistAttacker, removeFromAllowedMoves.assist, addToAllowedMoves.assist)));
-  //       }
-  //   }
-  // if (auto defendingPlayer = game.getDefendingPlayer ())
-  //   {
-  //     if (auto defendingUser = ranges::find_if (_gameUsers, [defendingPlayerName = defendingPlayer->id] (GameUser const &gameUser) { return gameUser._user->accountName == defendingPlayerName; }); defendingUser != _gameUsers.end ())
-  //       {
-  //         defendingUser->_user->sendMessageToUser (objectToStringWithObjectName (allowedMoves (game, durak::PlayerRole::defend, removeFromAllowedMoves.defend, addToAllowedMoves.defend)));
-  //       }
-  //   }
+  if (auto attackingPlayer = game.getAttackingPlayer ())
+    {
+      if (auto attackingUser = ranges::find_if (users, [attackingPlayerName = attackingPlayer->id] (User const &user) { return user.accountName == attackingPlayerName; }); attackingUser != users.end ())
+        {
+          attackingUser->sendMsgToUser (objectToStringWithObjectName (allowedMoves (game, durak::PlayerRole::attack, removeFromAllowedMoves.attack, addToAllowedMoves.attack)));
+        }
+    }
+  if (auto assistingPlayer = game.getAssistingPlayer ())
+    {
+      if (auto assistingUser = ranges::find_if (users, [assistingPlayerName = assistingPlayer->id] (User const &user) { return user.accountName == assistingPlayerName; }); assistingUser != users.end ())
+        {
+          assistingUser->sendMsgToUser (objectToStringWithObjectName (allowedMoves (game, durak::PlayerRole::assistAttacker, removeFromAllowedMoves.assist, addToAllowedMoves.assist)));
+        }
+    }
+  if (auto defendingPlayer = game.getDefendingPlayer ())
+    {
+      if (auto defendingUser = ranges::find_if (users, [defendingPlayerName = defendingPlayer->id] (User const &user) { return user.accountName == defendingPlayerName; }); defendingUser != users.end ())
+        {
+          defendingUser->sendMsgToUser (objectToStringWithObjectName (allowedMoves (game, durak::PlayerRole::defend, removeFromAllowedMoves.defend, addToAllowedMoves.defend)));
+        }
+    }
 }
 
 void
-sendGameDataToAccountsInGame (durak::Game const &game, std::vector<GameUser> const &_gameUsers)
+sendGameDataToAccountsInGame (durak::Game const &game, std::vector<User> const &users)
 {
-  // TODO sendGameDataToAccountsInGame
-  // auto gameData = game.getGameData ();
-  // ranges::for_each (gameData.players, [] (auto &player) { ranges::sort (player.cards, [] (auto const &card1, auto const &card2) { return card1.value () < card2.value (); }); });
-  // ranges::for_each (_gameUsers, [&gameData] (auto const &gameUser) { gameUser._user->sendMessageToUser (objectToStringWithObjectName (filterGameDataByAccountName (gameData, gameUser._user->accountName.value ()))); });
+  auto gameData = game.getGameData ();
+  ranges::for_each (gameData.players, [] (auto &player) { ranges::sort (player.cards, [] (auto const &card1, auto const &card2) { return card1.value () < card2.value (); }); });
+  ranges::for_each (users, [&gameData] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (filterGameDataByAccountName (gameData, user.accountName))); });
 }
+
+#ifdef LOGGING_CO_SPAWN_PRINT_EXCEPTIONS
+void
+printExceptionHelper (std::exception_ptr eptr)
+{
+  try
+    {
+      if (eptr)
+        {
+          std::rethrow_exception (eptr);
+        }
+    }
+  catch (std::exception const &e)
+    {
+      std::cout << "unhandled exception: '" << e.what () << "'" << std::endl;
+    }
+}
+#else
+void printExceptionHelper (std::exception_ptr) {}
+#endif
