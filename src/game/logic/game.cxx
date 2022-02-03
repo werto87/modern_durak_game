@@ -10,6 +10,9 @@
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/optional.hpp>
 #include <boost/sml.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <chrono>
 #include <cmath>
 #include <confu_json/concept.hxx>
@@ -36,12 +39,6 @@
 #include <utility>
 #include <vector>
 using namespace boost::sml;
-
-struct TempUser
-{
-  boost::optional<std::string> accountName{};
-  std::deque<std::string> msgQueue{};
-};
 
 struct Chill
 {
@@ -158,11 +155,16 @@ struct sendTimerEv
 
 struct GameDependencies
 {
+
+  GameDependencies (matchmaking_game::StartGame const &startGame) : waitForUser{ startGame.players.begin (), startGame.players.end () }, gameOption{ startGame.gameOption }, isRanked{ startGame.ratedGame } {}
+  std::list<std::string> waitForUser{};
+  shared_class::GameOption gameOption{};
   TimerOption timerOption{};
   durak::Game game{};
   std::vector<User> users{};
   PassAttackAndAssist passAttackAndAssist{};
   bool isRanked{};
+  std::string gameName{ boost::uuids::to_string (boost::uuids::random_generator () ()) };
 };
 
 auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer; };
@@ -356,7 +358,7 @@ auto const resumeTimerHandler = [] (GameDependencies &gameDependencies, resumeTi
           }
         user.pausedTime = {};
         co_spawn (
-            user.timer->get_executor (), [playersToResume = std::move (playersToResume), &gameDependencies, &user] () { return runTimer (user.timer, user.accountName, gameDependencies.game, gameDependencies.users, gameDependencies.isRanked); }, boost::asio::detached);
+            user.timer->get_executor (), [playersToResume = std::move (playersToResume), &gameDependencies, &user] () { return runTimer (user.timer, user.accountName, gameDependencies.game, gameDependencies.users, gameDependencies.isRanked); }, printException);
       }
   });
 };
@@ -827,14 +829,14 @@ struct my_logger
 
 struct Game::StateMachineWrapper
 {
-  StateMachineWrapper (Game *owner) :
+  StateMachineWrapper (Game *owner,matchmaking_game::StartGame const &startGame) : gameDependencies{startGame},
   impl (owner,
 #ifdef LOGGING_FOR_STATE_MACHINE
                                                                                               logger,
 #endif
-                                                                                              matchmakingGameDependencies){}
+                                                                                              gameDependencies){}
 
-  GameDependencies matchmakingGameDependencies{};
+  GameDependencies gameDependencies;
 
 #ifdef LOGGING_FOR_STATE_MACHINE
   my_logger logger;
@@ -851,13 +853,12 @@ Game::StateMachineWrapperDeleter::operator() (StateMachineWrapper *p)
 }
 
 
-Game::Game(): sm{ new StateMachineWrapper{this} } {}
+
+Game::Game (matchmaking_game::StartGame const &startGame): sm{ new StateMachineWrapper{this,startGame} } {}
 
 
 
-void Game::process_event (std::string const &event) {
-{
-  // TODO process_event
+void Game::processEvent (std::string const &event) {
   std::vector<std::string> splitMesssage{};
   boost::algorithm::split (splitMesssage, event, boost::is_any_of ("|"));
   if (splitMesssage.size () == 2)
@@ -865,7 +866,7 @@ void Game::process_event (std::string const &event) {
       auto const &typeToSearch = splitMesssage.at (0);
       auto const &objectAsString = splitMesssage.at (1);
       bool typeFound = false;
-      boost::hana::for_each (shared_class::sharedClasses, [&] (const auto &x) {
+      boost::hana::for_each (shared_class::gameTypes, [&] (const auto &x) {
             if (typeToSearch == confu_json::type_name<typename std::decay<decltype (x)>::type> ())
               {
                 typeFound = true;
@@ -875,8 +876,7 @@ void Game::process_event (std::string const &event) {
                 return;
               }
           });
-          if (not typeFound) std::cout << "could not find a match for typeToSearch in userMatchmaking '" << typeToSearch << "'" << std::endl;
-      
+      if (not typeFound) std::cout << "could not find a match for typeToSearch in shared_class::gameTypes or matchmaking_game::gameMessages '" << typeToSearch << "'" << std::endl;
     }
   else
     {
@@ -884,4 +884,10 @@ void Game::process_event (std::string const &event) {
     }
 }
 
+
+
+
+std::string const& Game::gameName () const{
+  return sm->gameDependencies.gameName;
 }
+

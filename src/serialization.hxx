@@ -51,6 +51,7 @@ BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), GameOverError, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UserLeftGame, (std::string, accountName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UserLeftGameSuccess, (std::string, accountName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UserLeftGameError, (std::string, accountName) (std::string, error))
+BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), ConnectToGame, (std::string, accountName) (std::string, gameName))
 // GENERIC GAME MESSAGES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // MODERN DURAK TYPES
@@ -151,7 +152,7 @@ DurakTimers,
 DurakAllowedMoves,
 SetTimerOption,
 SetTimerOptionError
-  >  const sharedClasses{};
+  >  const gameTypes{};
 }
 // clang-format on
 

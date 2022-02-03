@@ -25,18 +25,23 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
           co_await connection->async_accept ();
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection });
           using namespace boost::asio::experimental::awaitable_operators;
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket] (const std::string &msg) {
-            //
-            // TODO connect user and add him to game
-            if (boost::starts_with (msg, "StartGame"))
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games] (const std::string &msg) {
+            std::cout << "listenerUserToGameViaMatchmaking: " << msg << std::endl;
+            std::vector<std::string> splitMesssage{};
+            boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
+            if (splitMesssage.size () == 2)
               {
-                // games.emplace_back ();
-                // myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{}));
+                auto const &typeToSearch = splitMesssage.at (0);
+                auto const &objectAsString = splitMesssage.at (1);
+                if (typeToSearch == "StartGame")
+                  {
+                    auto &game = games.emplace_back (stringToObject<matchmaking_game::StartGame> (objectAsString));
+                    myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{ game.gameName () }));
+                  }
               }
+            games.front ().processEvent (msg);
           }) && myWebsocket->writeLoop (),
-                    [] (auto eptr) {
-                      // TODO remove user from list
-                    });
+                    printException);
         }
       catch (std::exception &e)
         {
@@ -62,13 +67,27 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection });
           using namespace boost::asio::experimental::awaitable_operators;
           co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games] (const std::string &msg) {
-            if (boost::starts_with (msg, "StartGame"))
+            std::cout << "listenerMatchmakingToGame: " << msg << std::endl;
+            std::vector<std::string> splitMesssage{};
+            boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
+            if (splitMesssage.size () == 2)
               {
-                games.emplace_back ();
-                myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{}));
+                auto const &typeToSearch = splitMesssage.at (0);
+                auto const &objectAsString = splitMesssage.at (1);
+                if (typeToSearch == "StartGame")
+                  {
+                    auto &game = games.emplace_back (stringToObject<matchmaking_game::StartGame> (objectAsString));
+                    myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{ game.gameName () }));
+                  }
+                else
+                  std::cout << "not supported event msg '" << msg << "'" << std::endl;
+              }
+            else
+              {
+                std::cout << "Not supported event. event syntax: EventName|JsonObject" << std::endl;
               }
           }) && myWebsocket->writeLoop (),
-                    detached);
+                    printException);
         }
       catch (std::exception &e)
         {

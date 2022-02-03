@@ -9,18 +9,27 @@ namespace boost::asio
 class io_context;
 }
 
+namespace matchmaking_game
+{
+struct StartGame;
+}
+
 class Game
 {
+
+public:
+  Game (matchmaking_game::StartGame const &startGame);
+
+  void processEvent (std::string const &event);
+
+  std::string const &gameName () const;
+
+private:
   struct StateMachineWrapper;
   struct StateMachineWrapperDeleter
   {
     void operator() (StateMachineWrapper *p);
   };
-
-public:
-  Game ();
-
-  void process_event (std::string const &event);
 
   std::unique_ptr<StateMachineWrapper, StateMachineWrapperDeleter> sm; // only use this member inside of ".cxx". reason because of incomplete type
 };
