@@ -43,7 +43,7 @@ struct GameMachine
       }
     else
       {
-        throw std::logic_error{ "can not relog user beacuse he is not logged in the game" };
+        throw std::logic_error{ "can not relog user because he is not logged in the game" };
       }
   }
 

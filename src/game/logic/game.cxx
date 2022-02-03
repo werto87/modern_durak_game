@@ -91,14 +91,6 @@ struct defendPass
   std::string playerName{};
 };
 
-struct rewokePassAttack
-{
-};
-
-struct rewokePassAssist
-{
-};
-
 struct PassAttackAndAssist
 {
   bool attack{};

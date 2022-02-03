@@ -18,23 +18,25 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
     {
       try
         {
-          // TODO connect user and add him to game
           auto socket = co_await acceptor.async_accept ();
           auto connection = std::make_shared<Websocket> (Websocket{ std::move (socket) });
           connection->set_option (websocket::stream_base::timeout::suggested (role_type::server));
           connection->set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
           co_await connection->async_accept ();
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection });
-          // games.emplace_back (_io_context, matchmakings, [myWebsocket] (std::string message) { myWebsocket->sendMessage (std::move (message)); });
-          // std::list<Matchmaking>::iterator matchmaking = std::prev (matchmakings.end ());
-          // using namespace boost::asio::experimental::awaitable_operators;
-          // co_spawn (executor, myWebsocket->readLoop ([myWebsocket] (const std::string &msg) {
-          //   //
-          //   // TODO do something when message is read
-          // }) && myWebsocket->writeLoop (),
-          //           [] (auto eptr) {
-          //             // TODO remove user from list
-          //           });
+          using namespace boost::asio::experimental::awaitable_operators;
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket] (const std::string &msg) {
+            //
+            // TODO connect user and add him to game
+            if (boost::starts_with (msg, "StartGame"))
+              {
+                // games.emplace_back ();
+                // myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{}));
+              }
+          }) && myWebsocket->writeLoop (),
+                    [] (auto eptr) {
+                      // TODO remove user from list
+                    });
         }
       catch (std::exception &e)
         {
@@ -60,8 +62,6 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection });
           using namespace boost::asio::experimental::awaitable_operators;
           co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games] (const std::string &msg) {
-            //
-            // TODO do something when message is read
             if (boost::starts_with (msg, "StartGame"))
               {
                 games.emplace_back ();
