@@ -100,7 +100,13 @@ MyWebsocket<T>::writeLoop ()
             {
               auto tmpMsg = std::move (msgQueue.front ());
               msgQueue.pop_front ();
+#ifdef LOG_MSG_WRITE
+              std::cout << "writeLoop: " << tmpMsg << std::endl;
+#endif
               co_await connection.lock ()->async_write (boost::asio::buffer (tmpMsg), boost::asio::use_awaitable);
+#ifdef LOG_MSG_WRITE
+              std::cout << "after write one msg" << std::endl;
+#endif
             }
         }
     }

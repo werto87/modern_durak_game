@@ -13,16 +13,21 @@ namespace matchmaking_game
 {
 struct StartGame;
 }
+struct User;
 
 class Game
 {
 
 public:
-  Game (matchmaking_game::StartGame const &startGame);
+  Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users);
 
   void processEvent (std::string const &event);
 
   std::string const &gameName () const;
+
+  bool isGameRunning () const;
+
+  bool isUserInGame (std::string const &user) const;
 
 private:
   struct StateMachineWrapper;

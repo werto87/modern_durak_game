@@ -2,6 +2,7 @@
 #include "durak/card.hxx"
 #include "durak/game.hxx"
 #include "durak/gameData.hxx"
+#include "gameEvent.hxx"
 #include "src/serialization.hxx"
 #include "src/server/user.hxx"
 #include "src/util.hxx"
@@ -19,6 +20,7 @@
 #include <confu_json/confu_json.hxx>
 #include <cstddef>
 #include <cstdlib>
+#include <durak/gameOption.hxx>
 #include <fmt/format.h>
 #include <iostream>
 #include <magic_enum.hpp>
@@ -31,6 +33,7 @@
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/algorithm/transform.hpp>
 #include <range/v3/all.hpp>
+#include <range/v3/iterator/insert_iterators.hpp>
 #include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
@@ -38,8 +41,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-using namespace boost::sml;
-
 struct Chill
 {
 };
@@ -61,52 +62,12 @@ struct askDef
 {
 };
 
-struct attack
-{
-  std::string playerName{};
-  std::vector<durak::Card> cards{};
-};
-
-struct defend
-{
-  std::string playerName{};
-  durak::Card cardToBeat{};
-  durak::Card card{};
-};
-
-struct attackPass
-{
-  std::string playerName{};
-};
-
-struct assistPass
-{
-  std::string playerName{};
-};
-struct defendPass
-{
-  std::string playerName{};
-};
-
 struct PassAttackAndAssist
 {
   bool attack{};
   bool assist{};
 };
 
-struct defendAnswerYes
-{
-  std::string playerName{};
-};
-struct defendAnswerNo
-{
-  std::string playerName{};
-};
-
-struct leaveGame
-{
-  std::string accountName{};
-};
 struct gameOver
 {
 };
@@ -152,24 +113,23 @@ struct start
 struct sendTimerEv
 {
 };
+using namespace boost::sml;
 
 struct GameDependencies
 {
 
-  GameDependencies (matchmaking_game::StartGame const &startGame) : waitForUser{ startGame.players.begin (), startGame.players.end () }, gameOption{ startGame.gameOption }, isRanked{ startGame.ratedGame } {}
-  std::list<std::string> waitForUser{};
-  shared_class::GameOption gameOption{};
+  GameDependencies (matchmaking_game::StartGame const &startGame, std::string const &gameName_, std::list<User> &&users_) : users{ std::move (users_) }, isRanked{ startGame.ratedGame }, gameName{ gameName_ } {}
   TimerOption timerOption{};
   durak::Game game{};
-  std::vector<User> users{};
+  std::list<User> users{};
   PassAttackAndAssist passAttackAndAssist{};
   bool isRanked{};
-  std::string gameName{ boost::uuids::to_string (boost::uuids::random_generator () ()) };
+  std::string gameName{};
 };
 
 auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer; };
 
-auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, std::vector<User> &users, bool isRanked) {
+auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, std::list<User> &users, bool isRanked) {
   if (durak)
     {
       ranges::for_each (users, [durak = durak->id] (User &user) {
@@ -198,7 +158,7 @@ auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, std
 };
 
 inline void
-removeUserFromGame (std::string const &userToRemove, durak::Game &game, std::vector<User> &users, bool isRanked)
+removeUserFromGame (std::string const &userToRemove, durak::Game &game, std::list<User> &users, bool isRanked)
 {
   if (not game.checkIfGameIsOver ())
     {
@@ -207,7 +167,7 @@ removeUserFromGame (std::string const &userToRemove, durak::Game &game, std::vec
     }
 }
 
-boost::asio::awaitable<void> inline runTimer (std::shared_ptr<boost::asio::system_timer> timer, std::string const &accountName, durak::Game &game, std::vector<User> &users, bool isRanked)
+boost::asio::awaitable<void> inline runTimer (std::shared_ptr<boost::asio::system_timer> timer, std::string const &accountName, durak::Game &game, std::list<User> &users, bool isRanked)
 {
   try
     {
@@ -290,7 +250,7 @@ auto const nextRoundTimerHandler = [] (GameDependencies &gameDependencies, boost
 };
 
 inline void
-sendAllowedMovesForUserWithName (durak::Game &game, std::vector<User> &users, std::string const &userName)
+sendAllowedMovesForUserWithName (durak::Game &game, std::list<User> &users, std::string const &userName)
 {
   if (auto user = ranges::find_if (users, [&userName] (auto const &user) { return user.accountName == userName; }); user != users.end ())
     {
@@ -472,9 +432,9 @@ auto const startAskDef = [] (GameDependencies &gameDependencies, boost::sml::bac
 };
 
 auto const userLeftGame = [] (GameDependencies &gameDependencies, leaveGame const &leaveGameEv) {
-  removeUserFromGame (leaveGameEv.accountName, gameDependencies.game, gameDependencies.users, gameDependencies.isRanked);
+  removeUserFromGame (leaveGameEv.playerName, gameDependencies.game, gameDependencies.users, gameDependencies.isRanked);
   ranges::for_each (gameDependencies.users, [] (auto const &user) { user.timer->cancel (); });
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = leaveGameEv.accountName] (User const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+  if (auto user = ranges::find_if (gameDependencies.users, [accountName = leaveGameEv.playerName] (User const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
     {
       gameDependencies.users.erase (user);
     }
@@ -829,16 +789,16 @@ struct my_logger
 
 struct Game::StateMachineWrapper
 {
-  StateMachineWrapper (Game *owner,matchmaking_game::StartGame const &startGame) : gameDependencies{startGame},
+  StateMachineWrapper (Game *owner,matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users) : gameDependencies{startGame,gameName,std::move(users)},
   impl (owner,
-#ifdef LOGGING_FOR_STATE_MACHINE
+#ifdef LOG_FOR_STATE_MACHINE
                                                                                               logger,
 #endif
                                                                                               gameDependencies){}
 
   GameDependencies gameDependencies;
 
-#ifdef LOGGING_FOR_STATE_MACHINE
+#ifdef LOG_FOR_STATE_MACHINE
   my_logger logger;
   boost::sml::sm<StateMachineImpl, boost::sml::logger<my_logger>,boost::sml::process_queue<std::queue> > impl;
 #else
@@ -854,7 +814,14 @@ Game::StateMachineWrapperDeleter::operator() (StateMachineWrapper *p)
 
 
 
-Game::Game (matchmaking_game::StartGame const &startGame): sm{ new StateMachineWrapper{this,startGame} } {}
+Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users): sm{ new StateMachineWrapper{this,startGame,gameName,std::move(users)} } {
+  auto userNames=std::vector<std::string>{};
+  ranges::transform(sm->gameDependencies.users,ranges::back_inserter(userNames),[](User const& user){return user.accountName;});
+  sm->gameDependencies.game=durak::Game{std::move(userNames),startGame.gameOption.gameOption};
+  // TODO check if it necessary to send this 2 events. maybe game could be started with out this???
+  sm->impl.process_event (initTimer{});
+  sm->impl.process_event (start{});
+}
 
 
 
@@ -880,7 +847,7 @@ void Game::processEvent (std::string const &event) {
     }
   else
     {
-      std::cout << "Not supported event. event syntax: EventName|JsonObject" << std::endl;
+      std::cout << "Not supported event. event syntax: EventName|JsonObject. not handled event: '" << event << "'" << std::endl;
     }
 }
 
@@ -889,5 +856,13 @@ void Game::processEvent (std::string const &event) {
 
 std::string const& Game::gameName () const{
   return sm->gameDependencies.gameName;
+}
+
+bool Game::isGameRunning () const {
+   return not sm->impl.is("doNotStartAtConstruction"_s);
+}
+
+bool Game::isUserInGame (std::string const& user) const {
+    return  ranges::find(sm->gameDependencies.users,user,[](User const& user){return user.accountName;})!=sm->gameDependencies.users.end();
 }
 

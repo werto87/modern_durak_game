@@ -3,4 +3,5 @@
  myWebsocket.hxx
  server.cxx
  user.hxx
+ gameToCreate.cxx
   )

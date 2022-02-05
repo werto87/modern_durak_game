@@ -30,31 +30,35 @@
 #include <boost/mpl/range_c.hpp>
 #include <cstddef>
 #include <durak/gameData.hxx>
+#include <durak/gameOption.hxx>
 #include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
 #include <variant>
 
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOption, (bool, someBool) (std::string, someString)) // TODO-TEMPLATE add game options
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOption, (durak::GameOption, gameOption)) // TODO-TEMPLATE add game options
 // GENERIC GAME MESSAGES
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UnhandledMessageError, (std::string, msg) (std::string, error))
-BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameError, (std::string, error))
-BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameSuccess, (std::string, gameName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), LeaveGameServer, (std::string, accountName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), LeaveGameSuccess, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), LeaveGameError, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), GameOver, (bool, ratedGame) (std::vector<std::string>, winners) (std::vector<std::string>, losers) (std::vector<std::string>, draws))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGame, (std::vector<std::string>, players) (shared_class::GameOption, gameOption) (bool, ratedGame))
+BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameError, (std::string, error))
+BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameSuccess, (std::string, gameName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), GameOverSuccess, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), GameOverError, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UserLeftGame, (std::string, accountName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UserLeftGameSuccess, (std::string, accountName))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), UserLeftGameError, (std::string, accountName) (std::string, error))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), ConnectToGame, (std::string, accountName) (std::string, gameName))
+BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), ConnectToGameError, (std::string, error))
+BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), ConnectToGameSuccess, )
 // GENERIC GAME MESSAGES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // MODERN DURAK TYPES
+// TODO this events come from the user and the game but the problem is for example DurakAttack has no name but the state machine uses attack with user name ???
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAttack, (std::vector<durak::Card>, cards))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAttackSuccess, )
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAttackError, (std::string, error))
@@ -113,6 +117,14 @@ enum struct TimerType
 // TODO there is no support for std::chrono::seconds in confu_json
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOption, (shared_class::TimerType, timerType) (int, timeAtStartInSeconds) (int, timeForEachRoundInSeconds))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOptionError, (std::string, error))
+BOOST_FUSION_DEFINE_STRUCT ((), attack, (std::string, playerName) (std::vector<durak::Card>, cards))
+BOOST_FUSION_DEFINE_STRUCT ((), defend, (std::string, playerName) (durak::Card, cardToBeat) (durak::Card, card))
+BOOST_FUSION_DEFINE_STRUCT ((), attackPass, (std::string, playerName))
+BOOST_FUSION_DEFINE_STRUCT ((), assistPass, (std::string, playerName))
+BOOST_FUSION_DEFINE_STRUCT ((), defendPass, (std::string, playerName))
+BOOST_FUSION_DEFINE_STRUCT ((), defendAnswerYes, (std::string, playerName))
+BOOST_FUSION_DEFINE_STRUCT ((), defendAnswerNo, (std::string, playerName))
+BOOST_FUSION_DEFINE_STRUCT ((), leaveGame, (std::string, playerName))
 // MODERN DURAK TYPES //////////////////////////////////////////////////////////////////////////////////////////////
 
 // clang-format off
@@ -151,7 +163,15 @@ DurakLeaveGameError,
 DurakTimers,
 DurakAllowedMoves,
 SetTimerOption,
-SetTimerOptionError
+SetTimerOptionError,
+attack,
+defend,
+attackPass,
+assistPass,
+defendPass,
+defendAnswerYes,
+defendAnswerNo,
+leaveGame
   >  const gameTypes{};
 }
 // clang-format on

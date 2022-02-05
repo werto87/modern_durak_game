@@ -50,7 +50,7 @@ allowedMoves (durak::Game const &game, durak::PlayerRole playerRole, std::option
 }
 
 void
-sendAvailableMoves (durak::Game const &game, std::vector<User> const &users, AllowedMoves const &removeFromAllowedMoves, AllowedMoves const &addToAllowedMoves)
+sendAvailableMoves (durak::Game const &game, std::list<User> const &users, AllowedMoves const &removeFromAllowedMoves, AllowedMoves const &addToAllowedMoves)
 {
   if (auto attackingPlayer = game.getAttackingPlayer ())
     {
@@ -76,14 +76,14 @@ sendAvailableMoves (durak::Game const &game, std::vector<User> const &users, All
 }
 
 void
-sendGameDataToAccountsInGame (durak::Game const &game, std::vector<User> const &users)
+sendGameDataToAccountsInGame (durak::Game const &game, std::list<User> const &users)
 {
   auto gameData = game.getGameData ();
   ranges::for_each (gameData.players, [] (auto &player) { ranges::sort (player.cards, [] (auto const &card1, auto const &card2) { return card1.value () < card2.value (); }); });
   ranges::for_each (users, [&gameData] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (filterGameDataByAccountName (gameData, user.accountName))); });
 }
 
-#ifdef LOGGING_CO_SPAWN_PRINT_EXCEPTIONS
+#ifdef LOG_CO_SPAWN_PRINT_EXCEPTIONS
 void
 printExceptionHelper (std::exception_ptr eptr)
 {
