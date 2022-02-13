@@ -1,6 +1,7 @@
 #ifndef EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 #define EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 
+#include <boost/optional/optional.hpp>
 #include <deque>
 #include <list>
 #include <memory>
@@ -21,13 +22,15 @@ class Game
 public:
   Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users);
 
-  void processEvent (std::string const &event);
+  void processEvent (std::string const &event, std::string const &accountName);
 
   std::string const &gameName () const;
 
   bool isGameRunning () const;
 
-  bool isUserInGame (std::string const &user) const;
+  bool isUserInGame (std::string const &userName) const;
+
+  boost::optional<User &> user (std::string const &userName);
 
 private:
   struct StateMachineWrapper;

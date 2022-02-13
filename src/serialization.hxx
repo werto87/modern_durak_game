@@ -117,14 +117,7 @@ enum struct TimerType
 // TODO there is no support for std::chrono::seconds in confu_json
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOption, (shared_class::TimerType, timerType) (int, timeAtStartInSeconds) (int, timeForEachRoundInSeconds))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOptionError, (std::string, error))
-BOOST_FUSION_DEFINE_STRUCT ((), attack, (std::string, playerName) (std::vector<durak::Card>, cards))
-BOOST_FUSION_DEFINE_STRUCT ((), defend, (std::string, playerName) (durak::Card, cardToBeat) (durak::Card, card))
-BOOST_FUSION_DEFINE_STRUCT ((), attackPass, (std::string, playerName))
-BOOST_FUSION_DEFINE_STRUCT ((), assistPass, (std::string, playerName))
-BOOST_FUSION_DEFINE_STRUCT ((), defendPass, (std::string, playerName))
-BOOST_FUSION_DEFINE_STRUCT ((), defendAnswerYes, (std::string, playerName))
-BOOST_FUSION_DEFINE_STRUCT ((), defendAnswerNo, (std::string, playerName))
-BOOST_FUSION_DEFINE_STRUCT ((), leaveGame, (std::string, playerName))
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), UnhandledEventError, (std::string, unhandledEvent))
 // MODERN DURAK TYPES //////////////////////////////////////////////////////////////////////////////////////////////
 
 // clang-format off
@@ -161,17 +154,7 @@ DurakGameOverDraw,
 DurakLeaveGame,
 DurakLeaveGameError,
 DurakTimers,
-DurakAllowedMoves,
-SetTimerOption,
-SetTimerOptionError,
-attack,
-defend,
-attackPass,
-assistPass,
-defendPass,
-defendAnswerYes,
-defendAnswerNo,
-leaveGame
+DurakAllowedMoves
   >  const gameTypes{};
 }
 // clang-format on

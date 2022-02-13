@@ -16,6 +16,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <chrono>
 #include <cmath>
+#include <concepts>
 #include <confu_json/concept.hxx>
 #include <confu_json/confu_json.hxx>
 #include <cstddef>
@@ -323,55 +324,61 @@ auto const resumeTimerHandler = [] (GameDependencies &gameDependencies, resumeTi
   });
 };
 
-auto const isDefendingPlayer = [] (GameDependencies &gameDependencies, defend const &defendEv) { return gameDependencies.game.getRoleForName (defendEv.playerName) == durak::PlayerRole::defend; };
+auto const isDefendingPlayer = [] (GameDependencies &gameDependencies, auto const &defendAndUser) {
+  auto [defendEvent, user] = defendAndUser;
+  return gameDependencies.game.getRoleForName (user.accountName) == durak::PlayerRole::defend;
+};
+auto const isAttackingOrAssistingPlayer = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAttack, User &> const &attackEvAndUser) {
+  auto [event, user] = attackEvAndUser;
+  auto const &playerRole = gameDependencies.game.getRoleForName (user.accountName);
+  return playerRole == durak::PlayerRole::attack or playerRole == durak::PlayerRole::assistAttacker;
+};
 auto const isNotFirstRound = [] (GameDependencies &gameDependencies) { return gameDependencies.game.getRound () > 1; };
-auto const setAttackAnswer = [] (GameDependencies &gameDependencies, attackPass const &attackPassEv, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = attackPassEv.playerName] (auto const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
-    {
 
-      if (not gameDependencies.passAttackAndAssist.attack)
+auto const setAttackAnswer = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAttackPass, User &> const &attackPassEventAndUser, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
+  auto [attackPassEvent, user] = attackPassEventAndUser;
+  if (not gameDependencies.passAttackAndAssist.attack)
+    {
+      if (gameDependencies.game.getRoleForName (user.accountName) == durak::PlayerRole::attack)
         {
-          if (gameDependencies.game.getRoleForName (attackPassEv.playerName) == durak::PlayerRole::attack)
-            {
-              gameDependencies.passAttackAndAssist.attack = true;
-              process_event (pauseTimer{ { attackPassEv.playerName } });
-              process_event (sendTimerEv{});
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess{}));
-            }
-          else
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "role is not attack" }));
-            }
+          gameDependencies.passAttackAndAssist.attack = true;
+          process_event (pauseTimer{ { user.accountName } });
+          process_event (sendTimerEv{});
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess{}));
         }
       else
         {
-          user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "pass already set" }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "role is not attack" }));
         }
     }
-};
-auto const setAssistAnswer = [] (GameDependencies &gameDependencies, assistPass const &assistPassEv, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = assistPassEv.playerName] (auto const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+  else
     {
-      if (not gameDependencies.passAttackAndAssist.assist)
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "pass already set" }));
+    }
+};
+
+// TODO
+auto const setAssistAnswer = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAssistPass, User &> const &assistPassEventAndUser, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
+  auto [assistPassEvent, user] = assistPassEventAndUser;
+  if (not gameDependencies.passAttackAndAssist.assist)
+    {
+      if (gameDependencies.game.getRoleForName (user.accountName) == durak::PlayerRole::assistAttacker)
         {
-          if (gameDependencies.game.getRoleForName (assistPassEv.playerName) == durak::PlayerRole::assistAttacker)
-            {
-              gameDependencies.passAttackAndAssist.assist = true;
-              process_event (pauseTimer{ { assistPassEv.playerName } });
-              process_event (sendTimerEv{});
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess{}));
-            }
-          else
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "role is not assist" }));
-            }
+          gameDependencies.passAttackAndAssist.assist = true;
+          process_event (pauseTimer{ { user.accountName } });
+          process_event (sendTimerEv{});
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess{}));
         }
       else
         {
-          user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "pass already set" }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "role is not assist" }));
         }
+    }
+  else
+    {
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError{ "pass already set" }));
     }
 };
 
@@ -431,12 +438,13 @@ auto const startAskDef = [] (GameDependencies &gameDependencies, boost::sml::bac
     }
 };
 
-auto const userLeftGame = [] (GameDependencies &gameDependencies, leaveGame const &leaveGameEv) {
-  removeUserFromGame (leaveGameEv.playerName, gameDependencies.game, gameDependencies.users, gameDependencies.isRanked);
-  ranges::for_each (gameDependencies.users, [] (auto const &user) { user.timer->cancel (); });
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = leaveGameEv.playerName] (User const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakLeaveGame, User &> const &leaveGameEventUser) {
+  auto [event, user] = leaveGameEventUser;
+  removeUserFromGame (user.accountName, gameDependencies.game, gameDependencies.users, gameDependencies.isRanked);
+  ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
+  if (auto userItr = ranges::find_if (gameDependencies.users, [accountName = user.accountName] (User const &user_) { return user_.accountName == accountName; }); userItr != gameDependencies.users.end ())
     {
-      gameDependencies.users.erase (user);
+      gameDependencies.users.erase (userItr);
     }
 };
 
@@ -486,97 +494,101 @@ auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boo
     }
 };
 
-auto const doPass = [] (GameDependencies &gameDependencies, std::string const &playerName, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
-  if (auto user = ranges::find_if (gameDependencies.users, [&playerName] (auto const &user) { return user.accountName == playerName; }); user != gameDependencies.users.end ())
+// TODO
+auto const doPass = [] (GameDependencies &gameDependencies, auto const &eventAndUser, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
+  auto [event, user] = eventAndUser;
+  auto playerName = user.accountName;
+  using eventType = typename std::decay<decltype (event)>::type;
+  using eventErrorType = typename std::decay<decltype ([&] {
+    if constexpr (std::same_as<eventType, shared_class::DurakAttackPass>)
+      {
+        return shared_class::DurakAttackPassError{};
+      }
+    else
+      {
+        return shared_class::DurakAssistPassError{};
+      }
+  }())>::type;
+
+  auto playerRole = gameDependencies.game.getRoleForName (playerName);
+  if (gameDependencies.game.getAttackStarted ())
     {
-      auto playerRole = gameDependencies.game.getRoleForName (playerName);
-      if (gameDependencies.game.getAttackStarted ())
+      if (gameDependencies.game.countOfNotBeatenCardsOnTable () == 0)
         {
-          if (gameDependencies.game.countOfNotBeatenCardsOnTable () == 0)
+          if (playerRole == durak::PlayerRole::attack || playerRole == durak::PlayerRole::assistAttacker)
             {
-              if (playerRole == durak::PlayerRole::attack || playerRole == durak::PlayerRole::assistAttacker)
+              if (playerRole == durak::PlayerRole::attack)
                 {
-                  if (playerRole == durak::PlayerRole::attack)
-                    {
-                      gameDependencies.passAttackAndAssist.attack = true;
-                      user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackPassSuccess{}));
-                    }
-                  else
-                    {
-                      gameDependencies.passAttackAndAssist.assist = true;
-                      user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAssistPassSuccess{}));
-                    }
-                  user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{}));
-                  process_event (pauseTimer{ { playerName } });
-                  process_event (sendTimerEv{});
+                  gameDependencies.passAttackAndAssist.attack = true;
+                  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackPassSuccess{}));
                 }
               else
                 {
-                  user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackPassError{ "account role is not attack or assist: " + playerName }));
+                  gameDependencies.passAttackAndAssist.assist = true;
+                  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAssistPassSuccess{}));
                 }
+              user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{}));
+              process_event (pauseTimer{ { playerName } });
+              process_event (sendTimerEv{});
             }
           else
             {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackPassError{ "there are not beaten cards on the table" }));
+              user.sendMsgToUser (objectToStringWithObjectName (eventErrorType{ "account role is not attack or assist: " + playerName }));
             }
         }
       else
         {
-          user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackPassError{ "can not pass if attack is not started" }));
+          user.sendMsgToUser (objectToStringWithObjectName (eventErrorType{ "there are not beaten cards on the table" }));
         }
     }
-};
-auto const setAttackPass = [] (GameDependencies &gameDependencies, attackPass const &attackPassEv, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) { doPass (gameDependencies, attackPassEv.playerName, process_event); };
-auto const setAssistPass = [] (GameDependencies &gameDependencies, assistPass const &assistPassEv, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) { doPass (gameDependencies, assistPassEv.playerName, process_event); };
-
-auto const handleDefendSuccess = [] (GameDependencies &gameDependencies, defendAnswerNo const &defendAnswerNoEv) {
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = defendAnswerNoEv.playerName] (auto const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+  else
     {
-      if (gameDependencies.game.getRoleForName (defendAnswerNoEv.playerName) == durak::PlayerRole::defend)
-        {
-          gameDependencies.game.nextRound (false);
-          if (gameDependencies.game.checkIfGameIsOver ())
-            {
-              handleGameOver (gameDependencies.game.durak (), gameDependencies.users, gameDependencies.isRanked);
-            }
-          else
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerSuccess{}));
-            }
-        }
-      else
-        {
-          user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "account role is not defend: " + defendAnswerNoEv.playerName }));
-        }
+      user.sendMsgToUser (objectToStringWithObjectName (eventErrorType{ "can not pass if attack is not started" }));
     }
 };
 
-auto const handleDefendPass = [] (GameDependencies &gameDependencies, defendPass const &defendPassEv, boost::sml::back::process<askAttackAndAssist> process_event) {
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = defendPassEv.playerName] (auto const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+auto const setAttackPass = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAttackPass, User &> const &durakAttackPassAndUser, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) { doPass (gameDependencies, durakAttackPassAndUser, process_event); };
+
+auto const setAssistPass = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAssistPass, User &> const &durakAssistPassAndUser, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) { doPass (gameDependencies, durakAssistPassAndUser, process_event); };
+
+// TODO DurakAskDefendWantToTakeCardsAnswer
+auto const handleDefendSuccess = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &defendAnswerEventAndUser) {
+  auto [event, user] = defendAnswerEventAndUser;
+  gameDependencies.game.nextRound (false);
+  if (gameDependencies.game.checkIfGameIsOver ())
     {
-      if (gameDependencies.game.getRoleForName (defendPassEv.playerName) == durak::PlayerRole::defend)
+      handleGameOver (gameDependencies.game.durak (), gameDependencies.users, gameDependencies.isRanked);
+    }
+  else
+    {
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerSuccess{}));
+    }
+};
+
+auto const handleDefendPass = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakDefendPass, User &> const &durakDefendPassAndUser, boost::sml::back::process<askAttackAndAssist> process_event) {
+  auto [defendPassEv, user] = durakDefendPassAndUser;
+  if (gameDependencies.game.getRoleForName (user.accountName) == durak::PlayerRole::defend)
+    {
+      if (gameDependencies.game.getAttackStarted ())
         {
-          if (gameDependencies.game.getAttackStarted ())
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassSuccess{}));
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
-              process_event (askAttackAndAssist{});
-            }
-          else
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "attack is not started" }));
-            }
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassSuccess{}));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
+          process_event (askAttackAndAssist{});
         }
       else
         {
-          user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "account role is not defiend: " + defendPassEv.playerName }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "attack is not started" }));
         }
+    }
+  else
+    {
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "account role is not defiend: " + user.accountName }));
     }
 };
 
 auto const resetPassStateMachineData = [] (GameDependencies &gameDependencies) { gameDependencies.passAttackAndAssist = PassAttackAndAssist{}; };
 
-auto const tryToAttackAndInformOtherPlayers = [] (GameDependencies &gameDependencies, attack const &attackEv, durak::PlayerRole playerRole, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event, bool isChill, User &user) {
+auto const tryToAttackAndInformOtherPlayers = [] (GameDependencies &gameDependencies, shared_class::DurakAttack const &attackEv, durak::PlayerRole playerRole, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event, bool isChill, User &user) {
   if (gameDependencies.game.playerAssists (playerRole, attackEv.cards))
     {
       user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackSuccess{}));
@@ -617,86 +629,124 @@ auto const tryToAttackAndInformOtherPlayers = [] (GameDependencies &gameDependen
     }
 };
 
-auto const doAttack = [] (attack const &attackEv, GameDependencies &gameDependencies, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event, bool isChill) {
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = attackEv.playerName] (auto const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+auto const doAttack = [] (std::tuple<shared_class::DurakAttack, User &> const &durakAttackAndUser, GameDependencies &gameDependencies, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event, bool isChill) {
+  auto [attackEv, user] = durakAttackAndUser;
+  auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
+  if (not gameDependencies.game.getAttackStarted () && playerRole == durak::PlayerRole::attack)
     {
-      auto playerRole = gameDependencies.game.getRoleForName (attackEv.playerName);
-      if (not gameDependencies.game.getAttackStarted () && playerRole == durak::PlayerRole::attack)
+      if (gameDependencies.game.playerStartsAttack (attackEv.cards))
         {
-          if (gameDependencies.game.playerStartsAttack (attackEv.cards))
+          if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer ())
             {
-              if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer ())
-                {
-                  process_event (resumeTimer{ { defendingPlayer->id } });
-                }
-              if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer ())
-                {
-                  process_event (pauseTimer{ { attackingPlayer->id } });
-                }
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackSuccess{}));
-              sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
-              sendAvailableMoves (gameDependencies.game, gameDependencies.users);
-              process_event (sendTimerEv{});
-              gameDependencies.passAttackAndAssist = PassAttackAndAssist{};
+              process_event (resumeTimer{ { defendingPlayer->id } });
             }
-          else
+          if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer ())
             {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackError{ "not allowed to play cards" }));
+              process_event (pauseTimer{ { attackingPlayer->id } });
+            }
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackSuccess{}));
+          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+          sendAvailableMoves (gameDependencies.game, gameDependencies.users);
+          process_event (sendTimerEv{});
+          gameDependencies.passAttackAndAssist = PassAttackAndAssist{};
+        }
+      else
+        {
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackError{ "not allowed to play cards" }));
+        }
+    }
+  else
+    {
+      tryToAttackAndInformOtherPlayers (gameDependencies, attackEv, playerRole, process_event, isChill, user);
+    }
+};
+
+auto const doAttackChill = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAttack, User &> const &durakAttackAndUser, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event) { doAttack (durakAttackAndUser, gameDependencies, process_event, true); };
+auto const doAttackAskAttackAndAssist = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakAttack, User &> const &attackEventAndUser, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event) { doAttack (attackEventAndUser, gameDependencies, process_event, false); };
+auto const doDefend = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakDefend, User &> const &defendAndUser, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event) {
+  auto [defendEvent, user] = defendAndUser;
+  auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
+  if (playerRole == durak::PlayerRole::defend)
+    {
+      if (gameDependencies.game.playerDefends (defendEvent.cardToBeat, defendEvent.card))
+        {
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendSuccess{}));
+          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+          sendAvailableMoves (gameDependencies.game, gameDependencies.users);
+          if (gameDependencies.game.countOfNotBeatenCardsOnTable () == 0)
+            {
+              process_event (pauseTimer{ { user.accountName } });
+              if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer (); attackingPlayer && not attackingPlayer->getCards ().empty ())
+                {
+                  process_event (resumeTimer{ { attackingPlayer->id } });
+                }
+              if (auto assistingPlayer = gameDependencies.game.getAssistingPlayer (); assistingPlayer && not assistingPlayer->getCards ().empty ())
+                {
+                  process_event (resumeTimer{ { assistingPlayer->id } });
+                }
+              process_event (sendTimerEv{});
             }
         }
       else
         {
-          tryToAttackAndInformOtherPlayers (gameDependencies, attackEv, playerRole, process_event, isChill, *user);
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendError{ "Error while defending " + fmt::format ("CardToBeat: {},{} vs. Card: {},{}", defendEvent.cardToBeat.value, magic_enum::enum_name (defendEvent.cardToBeat.type), defendEvent.card.value, magic_enum::enum_name (defendEvent.card.type)) }));
         }
     }
 };
 
-auto const doAttackChill = [] (GameDependencies &gameDependencies, attack const &attackEv, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event) { doAttack (attackEv, gameDependencies, process_event, true); };
+auto const blockOnlyDef = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &defendWantToTakeCardsEventAndUser) {
+  auto [event, user] = defendWantToTakeCardsEventAndUser;
+  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
+};
 
-auto const doAttackAskAttackAndAssist = [] (GameDependencies &gameDependencies, attack const &attackEv, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event) { doAttack (attackEv, gameDependencies, process_event, false); };
+auto const attackErrorUserHasWrongRole = [] (std::tuple<shared_class::DurakAttack, User &> const &durakAttackAndUser, GameDependencies &gameDependencies) {
+  auto [event, user] = durakAttackAndUser;
+  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackError{ "Wrong role error. To attack you need to have the role attack or assist. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
+};
 
-auto const doDefend = [] (GameDependencies &gameDependencies, defend const &defendEv, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event) {
-  if (auto user = ranges::find_if (gameDependencies.users, [accountName = defendEv.playerName] (auto const &user) { return user.accountName == accountName; }); user != gameDependencies.users.end ())
+template <typename> struct is_tuple : std::false_type
+{
+};
+
+template <typename... T> struct is_tuple<std::tuple<T...> > : std::true_type
+{
+};
+
+auto const unhandledEvent = [] (auto const &event) {
+  if constexpr (is_tuple<typename std::decay<decltype (event)>::type>::value)
     {
-
-      auto playerRole = gameDependencies.game.getRoleForName (defendEv.playerName);
-      if (playerRole == durak::PlayerRole::defend)
+      using eventType = typename std::decay<decltype (std::get<0> (event))>::type;
+      using userType = typename std::decay<decltype (std::get<1> (event))>::type;
+      if constexpr (std::same_as<userType, User> &&
+                    // orthogonal states lead to unhandled events even if they are handled in another state but not in both.
+                    not std::same_as<eventType, shared_class::DurakLeaveGame>)
         {
-          if (gameDependencies.game.playerDefends (defendEv.cardToBeat, defendEv.card))
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendSuccess{}));
-              sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
-              sendAvailableMoves (gameDependencies.game, gameDependencies.users);
-              if (gameDependencies.game.countOfNotBeatenCardsOnTable () == 0)
-                {
-                  process_event (pauseTimer{ { defendEv.playerName } });
-                  if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer (); attackingPlayer && not attackingPlayer->getCards ().empty ())
-                    {
-                      process_event (resumeTimer{ { attackingPlayer->id } });
-                    }
-                  if (auto assistingPlayer = gameDependencies.game.getAssistingPlayer (); assistingPlayer && not assistingPlayer->getCards ().empty ())
-                    {
-                      process_event (resumeTimer{ { assistingPlayer->id } });
-                    }
-                  process_event (sendTimerEv{});
-                }
-            }
-          else
-            {
-              user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendError{ "Error while defending " + fmt::format ("CardToBeat: {},{} vs. Card: {},{}", defendEv.cardToBeat.value, magic_enum::enum_name (defendEv.cardToBeat.type), defendEv.card.value, magic_enum::enum_name (defendEv.card.type)) }));
-            }
+          auto [durakEvent, user] = event;
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::UnhandledEventError{ boost::typeindex::type_id<typename std::decay<decltype (std::get<0> (event))>::type> ().pretty_name () }));
+#ifdef LOG_FOR_STATE_MACHINE
+          fmt::print (fmt::fg (fmt::color::orange_red), "[unhandled event]\t\t  {}", boost::typeindex::type_id<typename std::decay<decltype (std::get<0> (event))>::type> ().pretty_name ());
+          std::cout << std::endl;
+#endif
         }
+    }
+  else
+    {
+#ifdef LOG_FOR_STATE_MACHINE
+      fmt::print (fmt::fg (fmt::color::orange_red), "[unhandled event]\t\t  {}", boost::typeindex::type_id<typename std::decay<decltype (event)>::type> ().pretty_name ());
+      std::cout << std::endl;
+#endif
     }
 };
 
-auto const blockOnlyDef = [] (GameDependencies &gameDependencies) {
-  if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer ())
-    {
-      if (auto user = ranges::find_if (gameDependencies.users, [&defendingPlayer] (User const &user_) { return user_.accountName == defendingPlayer->id; }); user != gameDependencies.users.end ())
-        {
-          user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ {} }));
-        }
-    }
+auto const needsToBeDefendingplayerError = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser, GameDependencies &gameDependencies) {
+  auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
+
+  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "Wrong role error. To take or discard cards you need to have the role defend. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
+};
+
+auto const wantsToTakeCards = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser) {
+  auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
+  return askDefendWantToTakeCardsAnswerEvent.answer;
 };
 
 class StateMachineImpl
@@ -706,38 +756,57 @@ public:
   operator() () const noexcept
   {
     using namespace boost::sml;
+    using namespace shared_class;
+    using AttackPass = std::tuple<DurakAttackPass, User &>;
+    using AssistPass = std::tuple<DurakAssistPass, User &>;
+    using DefendPass = std::tuple<DurakDefendPass, User &>;
+    using Attack = std::tuple<DurakAttack, User &>;
+    using Attack = std::tuple<DurakAttack, User &>;
+    using Defend = std::tuple<DurakDefend, User &>;
+    using DefendWantToTakeCardsAnswer = std::tuple<DurakAskDefendWantToTakeCardsAnswer, User &>;
+    using LeaveGame = std::tuple<DurakLeaveGame, User &>;
     return make_transition_table (
+
         // clang-format off
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
-* "doNotStartAtConstruction"_s  + event<start>                                            /(roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                      = state<Chill>    
-, state<Chill>                  + on_entry<_>                   [isNotFirstRound]         /(resetPassStateMachineData,process (nextRoundTimer{}),roundStartSendAllowedMovesAndGameData)           
-, state<Chill>                  + event<askDef>                                                                                                                           = state<AskDef>
-, state<Chill>                  + event<askAttackAndAssist>                                                                                                               = state<AskAttackAndAssist>
-, state<Chill>                  + event<attackPass>                                       /(setAttackPass,checkData)
-, state<Chill>                  + event<assistPass>                                       /(setAssistPass,checkData)
-, state<Chill>                  + event<defendPass>                                       / handleDefendPass                                         
-, state<Chill>                  + event<attack>                                           / doAttackChill 
-, state<Chill>                  + event<defend>                 [isDefendingPlayer]       / doDefend 
-, state<Chill>                  + event<userRelogged>                                     / (userReloggedInChillState)
+* "init"_s                  + event<start>                                                  
+                            /(roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                                     = state<Chill>    
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
-, state<AskDef>                 + on_entry<_>                                             / startAskDef
-, state<AskDef>                 + event<defendAnswerYes>                                  / blockOnlyDef                                                                  = state<AskAttackAndAssist>
-, state<AskDef>                 + event<defendAnswerNo>                                   / handleDefendSuccess                                                           = state<Chill>
-, state<AskDef>                 + event<userRelogged>                                     / (userReloggedInAskDef)
-/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
-, state<AskAttackAndAssist>     + on_entry<_>                                             / startAskAttackAndAssist
-, state<AskAttackAndAssist>     + event<attackPass>                                       /(setAttackAnswer,checkAttackAndAssistAnswer)
-, state<AskAttackAndAssist>     + event<assistPass>                                       /(setAssistAnswer,checkAttackAndAssistAnswer)
-, state<AskAttackAndAssist>     + event<attack>                                           / doAttackAskAttackAndAssist 
-, state<AskAttackAndAssist>     + event<chill>                                                                                                                            =state<Chill>
-, state<AskAttackAndAssist>     + event<userRelogged>                                     / (userReloggedInAskAttackAssist)
-/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
-,*"leaveGameHandler"_s          + event<leaveGame>                                        / userLeftGame                                
-,*"timerHandler"_s              + event<initTimer>              [timerActive]             / (initTimerHandler)
-, "timerHandler"_s              + event<nextRoundTimer>         [timerActive]             / (nextRoundTimerHandler)
-, "timerHandler"_s              + event<pauseTimer>             [timerActive]             / (pauseTimerHandler)
-, "timerHandler"_s              + event<resumeTimer>            [timerActive]             / (resumeTimerHandler)
-, "timerHandler"_s              + event<sendTimerEv>            [timerActive]             / (sendTimer)
+, state<Chill>              + on_entry<_>                        [isNotFirstRound]               
+                            /(resetPassStateMachineData,process (nextRoundTimer{}),roundStartSendAllowedMovesAndGameData)           
+, state<Chill>              + event<askDef>                                                                                                       = state<AskDef>
+, state<Chill>              + event<askAttackAndAssist>                                                                                           = state<AskAttackAndAssist>
+, state<Chill>              + event<AttackPass>                                                     /(setAttackPass,checkData)
+, state<Chill>              + event<AssistPass>                                                     /(setAssistPass,checkData)
+, state<Chill>              + event<DefendPass>                                                     / handleDefendPass
+, state<Chill>              + event<Attack>                      [not isAttackingOrAssistingPlayer] / attackErrorUserHasWrongRole
+, state<Chill>              + event<Attack>                                                         / doAttackChill
+, state<Chill>              + event<Defend>                      [isDefendingPlayer]                / doDefend
+, state<Chill>              + event<userRelogged>                                                   / (userReloggedInChillState)
+, state<Chill>              + event<_>                                                              / unhandledEvent
+// /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
+, state<AskDef>             + on_entry<_>                                                           / startAskDef
+, state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingplayerError
+, state<AskDef>             + event<DefendWantToTakeCardsAnswer> [ wantsToTakeCards ]               / blockOnlyDef                                = state<AskAttackAndAssist>
+, state<AskDef>             + event<DefendWantToTakeCardsAnswer>                                    / handleDefendSuccess                         = state<Chill>
+, state<AskDef>             + event<userRelogged>                                                   / (userReloggedInAskDef)
+, state<AskDef>             + event<_>                                                              / unhandledEvent
+// /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
+, state<AskAttackAndAssist> + on_entry<_>                                                           / startAskAttackAndAssist
+, state<AskAttackAndAssist> + event<AttackPass>                                                     /(setAttackAnswer,checkAttackAndAssistAnswer)
+, state<AskAttackAndAssist> + event<AssistPass>                                                     /(setAssistAnswer,checkAttackAndAssistAnswer)
+, state<AskAttackAndAssist> + event<Attack>                      [not isAttackingOrAssistingPlayer] / attackErrorUserHasWrongRole
+, state<AskAttackAndAssist> + event<Attack>                                                         / doAttackAskAttackAndAssist
+, state<AskAttackAndAssist> + event<chill>                                                                                                        =state<Chill>
+, state<AskAttackAndAssist> + event<userRelogged>                                                   / (userReloggedInAskAttackAssist)
+, state<AskAttackAndAssist> + event<_>                                                              / unhandledEvent
+// /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
+,*"leaveGameHandler"_s      + event<LeaveGame>                                                      / userLeftGame                                
+,*"timerHandler"_s          + event<initTimer>                   [timerActive]                      / (initTimerHandler)
+, "timerHandler"_s          + event<nextRoundTimer>              [timerActive]                      / (nextRoundTimerHandler)
+, "timerHandler"_s          + event<pauseTimer>                  [timerActive]                      / (pauseTimerHandler)
+, "timerHandler"_s          + event<resumeTimer>                 [timerActive]                      / (resumeTimerHandler)
+, "timerHandler"_s          + event<sendTimerEv>                 [timerActive]                      / (sendTimer)
 
 // clang-format on   
     );
@@ -755,7 +824,7 @@ struct my_logger
     if constexpr (confu_json::is_adapted_struct<TEvent>::value)
       {
         std::cout << "\n[" << aux::get_type_name<SM> () << "]"
-                  << "[process_event] '" << objectToStringWithObjectName (event) << "'" << std::endl;
+                  << "[process_event] " << objectToStringWithObjectName (event)  << std::endl;
       }
     else
       {
@@ -767,21 +836,21 @@ struct my_logger
   void
   log_guard (const TGuard &, const TEvent &, bool result)
   {
-    printf ("[%s][guard]\t  '%s' %s\n", aux::get_type_name<SM> (), aux::get_type_name<TGuard> (), (result ? "[OK]" : "[Reject]"));
+    printf ("[%s][guard]\t  %s %s\n", aux::get_type_name<SM> (), aux::get_type_name<TGuard> (), (result ? "[OK]" : "[Reject]"));
   }
 
   template <class SM, class TAction, class TEvent>
   void
   log_action (const TAction &, const TEvent &)
   {
-    printf ("[%s][action]\t '%s' \n", aux::get_type_name<SM> (), aux::get_type_name<TAction> ());
+    printf ("[%s][action]\t  %s \n", aux::get_type_name<SM> (), aux::get_type_name<TAction> ());
   }
 
   template <class SM, class TSrcState, class TDstState>
   void
   log_state_change (const TSrcState &src, const TDstState &dst)
   {
-    printf ("[%s][transition]\t  '%s' -> '%s'\n", aux::get_type_name<SM> (), src.c_str (), dst.c_str ());
+    printf ("[%s][transition]\t  %s -> %s\n", aux::get_type_name<SM> (), src.c_str (), dst.c_str ());
   }
 };
 
@@ -825,7 +894,7 @@ Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gam
 
 
 
-void Game::processEvent (std::string const &event) {
+void Game::processEvent (std::string const &event, std::string const &accountName) {
   std::vector<std::string> splitMesssage{};
   boost::algorithm::split (splitMesssage, event, boost::is_any_of ("|"));
   if (splitMesssage.size () == 2)
@@ -838,7 +907,7 @@ void Game::processEvent (std::string const &event) {
               {
                 typeFound = true;
                 boost::json::error_code ec{};
-                sm->impl.process_event (confu_json::to_object<std::decay_t<decltype (x)> > (confu_json::read_json (objectAsString, ec)));
+                sm->impl.process_event (std::tuple<std::decay_t<decltype (x)>,User& > {confu_json::to_object<std::decay_t<decltype (x)> > (confu_json::read_json (objectAsString, ec)), user(accountName).value()} );
                 if (ec) std::cout << "read_json error: " << ec.message () << std::endl;
                 return;
               }
@@ -859,10 +928,15 @@ std::string const& Game::gameName () const{
 }
 
 bool Game::isGameRunning () const {
-   return not sm->impl.is("doNotStartAtConstruction"_s);
+   return not sm->impl.is("init"_s);
 }
 
-bool Game::isUserInGame (std::string const& user) const {
-    return  ranges::find(sm->gameDependencies.users,user,[](User const& user){return user.accountName;})!=sm->gameDependencies.users.end();
+bool Game::isUserInGame (std::string const& userName) const {
+    return  ranges::find(sm->gameDependencies.users,userName,[](User const& user){return user.accountName;})!=sm->gameDependencies.users.end();
+}
+
+boost::optional<User &> Game::user (std::string const &userName) {
+  auto userItr=ranges::find(sm->gameDependencies.users,userName,[](User const& user){return user.accountName;});
+  return userItr!=sm->gameDependencies.users.end()?*userItr:boost::optional<User &>{};
 }
 

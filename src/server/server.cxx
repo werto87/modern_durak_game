@@ -26,12 +26,10 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
           connection->set_option (websocket::stream_base::timeout::suggested (role_type::server));
           connection->set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
           co_await connection->async_accept ();
-          auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection });
+          static size_t id = 0;
+          auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection, "UserToGameViaMatchmaking", fmt::fg (fmt::color::red), std::to_string (id++) });
           using namespace boost::asio::experimental::awaitable_operators;
           co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName = std::optional<std::string>{}] (const std::string &msg) mutable {
-#ifdef LOG_MSG_READ
-            std::cout << "listenerUserToGameViaMatchmaking: " << msg << std::endl;
-#endif
             std::vector<std::string> splitMesssage{};
             boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
             if (splitMesssage.size () == 2)
@@ -63,108 +61,30 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
                         myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError{ "Could not find a game with game name: '" + connectToGame.gameName + "'" }));
                       }
                   }
-                else if (typeToSearch == "DurakAttack")
+                else if (accountName)
                   {
-                    // auto durakAttackObject = stringToObject<shared_class::DurakAttack> (objectAsString);
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    //   {
-                    //     gameMachine->durakStateMachine.process_event (attack{ .playerName = user->accountName.value (), .cards{ std::move (durakAttackObject.cards) } });
-                    //   }
-                    // else
-                    //   {
-                    //     user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakAttackError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    //   }
-                  }
-                else if (typeToSearch == "DurakDefend")
-                  {
-                    // auto durakDefendObject = stringToObject<shared_class::DurakDefend> (objectAsString);
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    //   {
-                    //     gameMachine->durakStateMachine.process_event (defend{ .playerName = user->accountName.value (), .cardToBeat{ durakDefendObject.cardToBeat }, .card{ durakDefendObject.card } });
-                    //   }
-                    // else
-                    //   {
-                    //     user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakDefendError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    //   }
-                  }
-                else if (typeToSearch == "DurakDefendPass")
-                  {
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    //   {
-                    //     gameMachine->durakStateMachine.process_event (defendPass{ .playerName = user->accountName.value () });
-                    //   }
-                    // else
-                    //   {
-                    //     user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    //   }
-                  }
-                else if (typeToSearch == "DurakAttackPass")
-                  {
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    // {
-                    // gameMachine->durakStateMachine.process_event (attackPass{ .playerName = user->accountName.value () });
-                    // }
-                    // else
-                    // {
-                    // user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakAttackPassError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    // }
-                  }
-                else if (typeToSearch == "DurakAssistPass")
-                  {
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    // {
-                    // gameMachine->durakStateMachine.process_event (assistPass{ .playerName = user->accountName.value () });
-                    // }
-                    // else
-                    // {
-                    // user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakAssistPassError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    // }
-                  }
-                else if (typeToSearch == "DurakAskDefendWantToTakeCardsAnswer")
-                  {
-                    // auto durakAskDefendWantToTakeCardsAnswerObject = stringToObject<shared_class::DurakAskDefendWantToTakeCardsAnswer> (objectAsString);
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    // {
-                    // if (durakAskDefendWantToTakeCardsAnswerObject.answer)
-                    // {
-                    // gameMachine->durakStateMachine.process_event (defendAnswerYes{ .playerName = user->accountName.value () });
-                    // }
-                    // else
-                    // {
-                    // gameMachine->durakStateMachine.process_event (defendAnswerNo{ .playerName = user->accountName.value () });
-                    // }
-                    // }
-                    // else
-                    // {
-                    // user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    // }
-                  }
-                else if (typeToSearch == "DurakLeaveGame")
-                  {
-                    if (accountName)
+                    if (auto game = ranges::find_if (games, [&accountName] (Game const &game) { return game.isUserInGame (accountName.value ()); }); game != games.end ())
                       {
-                        if (auto game = ranges::find_if (games, [&accountName] (Game const &game) { return game.isUserInGame (accountName.value ()); }); game != games.end ())
-                          {
-                            game->processEvent (objectToStringWithObjectName (leaveGame{ accountName.value () }));
-                          }
-                        else
-                          {
-                            myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakLeaveGameError{ "Could not find a game for Account Name: " + accountName.value () }));
-                          }
+
+                        game->processEvent (msg, accountName.value ());
+                        // TODO handle this case
+                        // else if (typeToSearch == "DurakAskDefendWantToTakeCardsAnswer")
+                        //   {
+                        //     if (stringToObject<shared_class::DurakAskDefendWantToTakeCardsAnswer> (objectAsString).answer)
+                        //       {
+                        //         game->processEvent (objectToStringWithObjectName (defendAnswerYes{ accountName.value () }));
+                        //       }
+                        //     else
+                        //       {
+                        //         game->processEvent (objectToStringWithObjectName (defendAnswerNo{ accountName.value () }));
+                        //       }
+                        //   }
                       }
                     else
                       {
-                        myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakLeaveGameError{ "Account name not set" }));
+                        // TODO send correct error type
+                        myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackError{ "Could not find a game for Account Name: " + accountName.value () }));
                       }
-                    // if (auto gameMachine = ranges::find_if (gameMachines, [accountName = user->accountName.value ()] (GameMachine const &_game) { return ranges::find_if (_game.getGameUsers (), [&accountName] (auto const &gameUser) { return gameUser._user->accountName.value () == accountName; }) != _game.getGameUsers ().end (); }); gameMachine != gameMachines.end ())
-                    //   {
-                    //     gameMachine->durakStateMachine.process_event (leaveGame{ user->accountName.value () });
-                    //     gameMachines.erase (gameMachine);
-                    //   }
-                    // else
-                    //   {
-                    //     user->sendMessageToUser (objectToStringWithObjectName (shared_class::DurakLeaveGameError{ "Could not find a game for Account Name: " + user->accountName.value () }));
-                    //   }
                   }
               }
           }) && myWebsocket->writeLoop (),
@@ -191,12 +111,10 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
           connection->set_option (websocket::stream_base::timeout::suggested (role_type::server));
           connection->set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
           co_await connection->async_accept ();
-          auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection });
+          static size_t id = 0;
+          auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection, "MatchmakingToGame", fmt::fg (fmt::color::blue_violet), std::to_string (id++) });
           using namespace boost::asio::experimental::awaitable_operators;
           co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &gamesToCreate = gamesToCreate] (const std::string &msg) {
-#ifdef LOG_MSG_READ
-            std::cout << "listenerMatchmakingToGame: " << msg << std::endl;
-#endif
             std::vector<std::string> splitMesssage{};
             boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
             if (splitMesssage.size () == 2)
