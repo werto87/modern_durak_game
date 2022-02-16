@@ -71,139 +71,153 @@ TEST_CASE ("send message to game", "[game]")
   co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
   ioContext.run ();
   ioContext.reset ();
-  // ioContext.stop ();
   SECTION ("DurakLeaveGame")
   {
-    // TODO find a way to stop this test :)
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto user1Logic = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-      if (msg.starts_with ("LeaveGameSuccess"))
-        {
-          co_spawn (ioContext, myWebsocket->async_close (), printException);
-        }
-    };
-    auto user2Logic = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto leaveGameSuccessCalledOnUser2 = false;
+    auto user1Logic = [] (auto &&, auto &&, auto &&) {};
+    auto user2Logic = [&leaveGameSuccessCalledOnUser2] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
           myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakLeaveGame{}));
         }
       if (msg.starts_with ("LeaveGameSuccess"))
         {
-          co_spawn (ioContext, myWebsocket->async_close (), printException);
+          leaveGameSuccessCalledOnUser2 = true;
+          ioContext.stop ();
         }
     };
     co_spawn (ioContext, connectWebsocket (user1Logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}},"user1"), printException);
     co_spawn (ioContext, connectWebsocket (user2Logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
     ioContext.run ();
+    REQUIRE (leaveGameSuccessCalledOnUser2);
   }
-  // SECTION ("DurakAttackPass")
-  // {
-  //   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-  //   auto someMsg = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-  //     if (msg.starts_with ("ConnectToGameSuccess"))
-  //       {
-  //         myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackPass{}));
-  //       }
-  //     if (msg.starts_with ("DurakAttackPassError"))
-  //       {
-  //         ioContext.stop ();
-  //       }
-  //   };
-  //   auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  //   co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   ioContext.run ();
-  // }
-  // SECTION ("DurakAssistPass")
-  // {
-  //   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-  //   auto someMsg = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-  //     if (msg.starts_with ("ConnectToGameSuccess"))
-  //       {
-  //         myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAssistPass{}));
-  //       }
-  //     if (msg.starts_with ("DurakAssistPassError"))
-  //       {
-  //         ioContext.stop ();
-  //       }
-  //   };
-  //   auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  //   co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   ioContext.run ();
-  // }
-  // SECTION ("DurakDefendPass")
-  // {
-  //   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-  //   auto someMsg = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-  //     if (msg.starts_with ("ConnectToGameSuccess"))
-  //       {
-  //         myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakDefendPass{}));
-  //       }
-  //     if (msg.starts_with ("DurakDefendPassError"))
-  //       {
-  //         ioContext.stop ();
-  //       }
-  //   };
-  //   auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  //   co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   ioContext.run ();
-  // }
-  // SECTION ("DurakDefend")
-  // {
-  //   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-  //   auto someMsg = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-  //     if (msg.starts_with ("ConnectToGameSuccess"))
-  //       {
-  //         myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakDefend{}));
-  //       }
-  //     if (msg.starts_with ("DurakDefendError"))
-  //       {
-  //         ioContext.stop ();
-  //       }
-  //   };
-  //   auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  //   co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   ioContext.run ();
-  // }
-  // SECTION ("DurakAttack")
-  // {
-  //   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-  //   auto someMsg = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-  //     if (msg.starts_with ("ConnectToGameSuccess"))
-  //       {
-  //         myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttack{}));
-  //       }
-  //     if (msg.starts_with ("DurakAttackError"))
-  //       {
-  //         ioContext.stop ();
-  //       }
-  //   };
-  //   auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  //   co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //   ioContext.run ();
-  // }
-  // SECTION ("DurakAskDefendWantToTakeCardsAnswer")
-  // {
-  //   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-  //   auto someMsg = [] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-  //     if (msg.starts_with ("ConnectToGameSuccess"))
-  //       {
-  //         myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswer{}));
-  //       }
-  //     if (msg.starts_with ("UnhandledEventError"))
-  //       {
-  //         ioContext.stop ();
-  //       }
-  //   };
-  //   auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  //     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-  //     ioContext.run ();
-  // }
+  SECTION ("DurakAttackPass")
+  {
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto durakAttackPassError = false;
+    auto someMsg = [&durakAttackPassError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("ConnectToGameSuccess"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackPass{}));
+        }
+      if (msg.starts_with ("DurakAttackPassError"))
+        {
+          durakAttackPassError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+      co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+      co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+      ioContext.run ();
+      REQUIRE (durakAttackPassError);
+  }
+  SECTION ("DurakAssistPass")
+  {
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto durakAssistPassError = false;
+    auto someMsg = [&durakAssistPassError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("ConnectToGameSuccess"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAssistPass{}));
+        }
+      if (msg.starts_with ("DurakAssistPassError"))
+        {
+          durakAssistPassError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    ioContext.run ();
+    REQUIRE (durakAssistPassError);
+  }
+  SECTION ("DurakDefendPass")
+  {
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto durakDefendPassError = false;
+    auto someMsg = [&durakDefendPassError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("ConnectToGameSuccess"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakDefendPass{}));
+        }
+      if (msg.starts_with ("DurakDefendPassError"))
+        {
+          durakDefendPassError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    ioContext.run ();
+    REQUIRE (durakDefendPassError);
+  }
+  SECTION ("DurakDefend")
+  {
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto durakDefendError = false;
+    auto someMsg = [&durakDefendError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("ConnectToGameSuccess"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakDefend{}));
+        }
+      if (msg.starts_with ("DurakDefendError"))
+        {
+          durakDefendError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    ioContext.run ();
+    REQUIRE (durakDefendError);
+  }
+  SECTION ("DurakAttack")
+  {
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto durakAttackError = false;
+    auto someMsg = [&durakAttackError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("ConnectToGameSuccess"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttack{}));
+        }
+      if (msg.starts_with ("DurakAttackError"))
+        {
+          durakAttackError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    ioContext.run ();
+    REQUIRE (durakAttackError);
+  }
+  SECTION ("DurakAskDefendWantToTakeCardsAnswer")
+  {
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto unhandledEventError = false;
+    auto someMsg = [&unhandledEventError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("ConnectToGameSuccess"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswer{}));
+        }
+      if (msg.starts_with ("UnhandledEventError"))
+        {
+          unhandledEventError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+      co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+      co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+      ioContext.run ();
+      REQUIRE (unhandledEventError);
+  }
   ioContext.stop ();
   ioContext.reset ();
 }
