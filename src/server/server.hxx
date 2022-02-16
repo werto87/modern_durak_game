@@ -4,12 +4,13 @@
 #include "gameToCreate.hxx"
 #include "src/game/logic/game.hxx"
 #include "user.hxx"
+#include <boost/asio/awaitable.hpp>
 #include <list>
 
 class Server
 {
 public:
-  boost::asio::awaitable<void> listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &endpoint);
+  boost::asio::awaitable<void> listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &endpoint, boost::asio::io_context &ioContext);
   boost::asio::awaitable<void> listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoint);
 
 private:

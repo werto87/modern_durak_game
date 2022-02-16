@@ -1,10 +1,13 @@
 #include "server.hxx"
 #include "boost/asio/experimental/awaitable_operators.hpp"
-#include "src/game/logic/gameEvent.hxx"
 #include "src/serialization.hxx"
 #include "src/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/this_coro.hpp>
 #include <iostream>
+#include <memory>
+#include <optional>
 #include <range/v3/algorithm/find_if.hpp>
 
 using namespace boost::beast;
@@ -12,11 +15,17 @@ using namespace boost::asio;
 using boost::asio::ip::tcp;
 using tcp_acceptor = use_awaitable_t<>::as_default_on_t<tcp::acceptor>;
 
+template <typename T> concept hasAccountName = requires (T t) { t.accountName; };
+
+// work around to print type for debuging
+// template <typename> struct Debug;
+// Debug<SomeType>{};
+
 awaitable<void>
-Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &endpoint)
+Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &endpoint, boost::asio::io_context &ioContext)
 {
   auto executor = co_await this_coro::executor;
-  tcp_acceptor acceptor (executor, endpoint);
+  tcp_acceptor acceptor (ioContext, endpoint);
   for (;;)
     {
       try
@@ -28,8 +37,9 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
           co_await connection->async_accept ();
           static size_t id = 0;
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection, "UserToGameViaMatchmaking", fmt::fg (fmt::color::red), std::to_string (id++) });
+          auto accountName = std::make_shared<std::optional<std::string> > ();
           using namespace boost::asio::experimental::awaitable_operators;
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName = std::optional<std::string>{}] (const std::string &msg) mutable {
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext] (const std::string &msg) mutable {
             std::vector<std::string> splitMesssage{};
             boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
             if (splitMesssage.size () == 2)
@@ -47,12 +57,12 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
                           }
                         else
                           {
-                            accountName = connectToGame.accountName;
+                            *accountName = connectToGame.accountName;
                             myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameSuccess{}));
                           }
                         if (gameToCreate->allUsersConnected ())
                           {
-                            games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users) });
+                            games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext });
                             gamesToCreate.erase (gameToCreate);
                           }
                       }
@@ -61,34 +71,42 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
                         myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError{ "Could not find a game with game name: '" + connectToGame.gameName + "'" }));
                       }
                   }
-                else if (accountName)
+                else if (accountName && accountName->has_value ())
                   {
-                    if (auto game = ranges::find_if (games, [&accountName] (Game const &game) { return game.isUserInGame (accountName.value ()); }); game != games.end ())
+                    if (auto game = ranges::find_if (games, [&accountName] (Game const &game) { return game.isUserInGame (accountName->value ()); }); game != games.end ())
                       {
-
-                        game->processEvent (msg, accountName.value ());
-                        // TODO handle this case
-                        // else if (typeToSearch == "DurakAskDefendWantToTakeCardsAnswer")
-                        //   {
-                        //     if (stringToObject<shared_class::DurakAskDefendWantToTakeCardsAnswer> (objectAsString).answer)
-                        //       {
-                        //         game->processEvent (objectToStringWithObjectName (defendAnswerYes{ accountName.value () }));
-                        //       }
-                        //     else
-                        //       {
-                        //         game->processEvent (objectToStringWithObjectName (defendAnswerNo{ accountName.value () }));
-                        //       }
-                        //   }
+                        game->processEvent (msg, accountName->value ());
                       }
                     else
                       {
                         // TODO send correct error type
-                        myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackError{ "Could not find a game for Account Name: " + accountName.value () }));
+                        myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackError{ "Could not find a game for Account Name: " + accountName->value () }));
                       }
                   }
               }
           }) && myWebsocket->writeLoop (),
-                    printException);
+                    [&games = games, accountName] (auto eptr) {
+                      printException (eptr);
+                      if (accountName && accountName->has_value ())
+                        {
+                          if (auto gameItr = ranges::find_if (games, [accountName] (Game &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != games.end ())
+                            {
+                              gameItr->removeUser (accountName->value ());
+                              if (gameItr->usersInGame () == 0)
+                                {
+                                  games.erase (gameItr);
+                                }
+                            }
+                          else
+                            {
+                              std::cout << "remove user from game error can not find a game with this user:" << accountName->value () << std::endl;
+                            }
+                        }
+                      else
+                        {
+                          std::cout << "remove user from game error name of user not known" << std::endl;
+                        }
+                    });
         }
       catch (std::exception &e)
         {

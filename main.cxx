@@ -15,15 +15,15 @@ main ()
   try
     {
       using namespace boost::asio;
-      io_context io_context (1);
-      signal_set signals (io_context, SIGINT, SIGTERM);
-      signals.async_wait ([&] (auto, auto) { io_context.stop (); });
+      io_context ioContext{};
+      signal_set signals (ioContext, SIGINT, SIGTERM);
+      signals.async_wait ([&] (auto, auto) { ioContext.stop (); });
       auto server = Server{};
       using namespace boost::asio::experimental::awaitable_operators;
       auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
       auto matchmakingToGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
-      co_spawn (io_context, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-      io_context.run ();
+      co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+      ioContext.run ();
     }
   catch (std::exception &e)
     {
