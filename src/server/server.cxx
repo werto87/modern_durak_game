@@ -77,11 +77,24 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
                       {
                         game->processEvent (msg, accountName->value ());
                       }
-                    else
-                      {
-                        // TODO send correct error type
-                        myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackError{ "Could not find a game for Account Name: " + accountName->value () }));
-                      }
+                  }
+                else if (accountName && not accountName->has_value ())
+                  {
+                    bool typeFound = false;
+                    boost::hana::for_each (shared_class::gameTypes, [&] (const auto &x) {
+                      if (typeToSearch + "Error" == confu_json::type_name<typename std::decay<decltype (x)>::type> ())
+                        {
+                          typeFound = true;
+                          if constexpr (requires { x.error; })
+                            {
+                              auto errorToSend = std::decay_t<decltype (x)>{};
+                              errorToSend.error = "Account name not set please call: ConnectToGame with account name and game name";
+                              myWebsocket->sendMessage (objectToStringWithObjectName (errorToSend));
+                            }
+                          return;
+                        }
+                    });
+                    if (not typeFound) std::cout << "could not find a match for typeToSearch in shared_class::gameTypes or matchmaking_game::gameMessages '" << typeToSearch << "'" << std::endl;
                   }
               }
           }) && myWebsocket->writeLoop (),
