@@ -166,7 +166,7 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
                 std::cout << "Not supported event. event syntax: EventName|JsonObject. Not handled event: '" << msg << "'" << std::endl;
               }
           }) && myWebsocket->writeLoop (),
-                    printException);
+                    [myWebsocket] (auto eptr) { printException (eptr); });
         }
       catch (std::exception &e)
         {
