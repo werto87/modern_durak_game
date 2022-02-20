@@ -782,7 +782,6 @@ auto const unhandledEvent = [] (auto const &event) {
 
 auto const needsToBeDefendingplayerError = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser, GameDependencies &gameDependencies) {
   auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
-
   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "Wrong role error. To take or discard cards you need to have the role defend. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
 };
 
@@ -790,6 +789,8 @@ auto const wantsToTakeCards = [] (std::tuple<shared_class::DurakAskDefendWantToT
   auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
   return askDefendWantToTakeCardsAnswerEvent.answer;
 };
+
+auto const sendStartGameToUser = [] (GameDependencies &gameDependencies) { ranges::for_each (gameDependencies.users, [] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::StartGame{})); }); };
 
 class StateMachineImpl
 {
@@ -812,9 +813,7 @@ public:
         // clang-format off
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 * "init"_s                  + event<start>                                                  
-                            /(roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                                     = state<Chill>   
-
-                             
+                            /(sendStartGameToUser,roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                                     = state<Chill>   
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<Chill>              + on_entry<_>                        [isNotFirstRound]               
                             /(resetPassStateMachineData,process (nextRoundTimer{}),roundStartSendAllowedMovesAndGameData)           
@@ -831,7 +830,7 @@ public:
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskDef>             + on_entry<_>                                                           / startAskDef
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingplayerError
-, state<AskDef>             + event<DefendWantToTakeCardsAnswer> [ wantsToTakeCards ]               / blockOnlyDef                                = state<AskAttackAndAssist>
+, state<AskDef>             + event<DefendWantToTakeCardsAnswer> [wantsToTakeCards]                 / blockOnlyDef                                = state<AskAttackAndAssist>
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer>                                    / handleDefendSuccess                         = state<Chill>
 , state<AskDef>             + event<userRelogged>                                                   / (userReloggedInAskDef)
 , state<AskDef>             + event<_>                                                              / unhandledEvent
