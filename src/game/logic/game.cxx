@@ -826,14 +826,14 @@ public:
 , state<Chill>              + event<Attack>                                                         / doAttackChill
 , state<Chill>              + event<Defend>                      [isDefendingPlayer]                / doDefend
 , state<Chill>              + event<userRelogged>                                                   / userReloggedInChillState
-, state<Chill>              + event<_>                                                              / unhandledEvent
+// , state<Chill>              + event<_>                                                              / unhandledEvent
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskDef>             + on_entry<_>                                                           / startAskDef
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingplayerError
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [wantsToTakeCards]                 / blockOnlyDef                                = state<AskAttackAndAssist>
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer>                                    / handleDefendSuccess                         = state<Chill>
 , state<AskDef>             + event<userRelogged>                                                   / (userReloggedInAskDef)
-, state<AskDef>             + event<_>                                                              / unhandledEvent
+// , state<AskDef>             + event<_>                                                              / unhandledEvent
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskAttackAndAssist> + on_entry<_>                                                           / startAskAttackAndAssist
 , state<AskAttackAndAssist> + event<AttackPass>                                                     /(setAttackAnswer,checkAttackAndAssistAnswer)
@@ -842,7 +842,7 @@ public:
 , state<AskAttackAndAssist> + event<Attack>                                                         / doAttackAskAttackAndAssist
 , state<AskAttackAndAssist> + event<chill>                                                                                                        =state<Chill>
 , state<AskAttackAndAssist> + event<userRelogged>                                                   / userReloggedInAskAttackAssist
-, state<AskAttackAndAssist> + event<_>                                                              / unhandledEvent
+// , state<AskAttackAndAssist> + event<_>                                                              / unhandledEvent
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 ,*"leaveGameHandler"_s      + event<LeaveGame>                                                      / userLeftGame                                
 ,*"timerHandler"_s          + event<initTimer>                   [timerActive]                      / initTimerHandler
@@ -936,9 +936,10 @@ Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gam
 
 
 
-void Game::processEvent (std::string const &event, std::string const &accountName) {
+std::optional<std::string> Game::processEvent (std::string const &event, std::string const &accountName) {
   std::vector<std::string> splitMesssage{};
   boost::algorithm::split (splitMesssage, event, boost::is_any_of ("|"));
+  auto result=std::optional<std::string>{};
   if (splitMesssage.size () == 2)
     {
       auto const &typeToSearch = splitMesssage.at (0);
@@ -949,17 +950,16 @@ void Game::processEvent (std::string const &event, std::string const &accountNam
               {
                 typeFound = true;
                 boost::json::error_code ec{};
-                sm->impl.process_event (std::tuple<std::decay_t<decltype (x)>,User& > {confu_json::to_object<std::decay_t<decltype (x)> > (confu_json::read_json (objectAsString, ec)), user(accountName).value()} );
-                if (ec) std::cout << "read_json error: " << ec.message () << std::endl;
+                auto messageAsObject=confu_json::read_json (objectAsString, ec);
+                if (ec) result="read_json error: " + ec.message ();
+                else if (not sm->impl.process_event (std::tuple<std::decay_t<decltype (x)>,User& > {confu_json::to_object<std::decay_t<decltype (x)> > (messageAsObject), user(accountName).value()} )) result="No transition found";
                 return;
               }
           });
-      if (not typeFound) std::cout << "could not find a match for typeToSearch in shared_class::gameTypes or matchmaking_game::gameMessages '" << typeToSearch << "'" << std::endl;
+      if (not typeFound) result= "could not find a match for typeToSearch in shared_class::gameTypes '" + typeToSearch + "'";
     }
-  else
-    {
-      std::cout << "Not supported event. event syntax: EventName|JsonObject. not handled event: '" << event << "'" << std::endl;
-    }
+  else result= "Not supported event. event syntax: EventName|JsonObject";
+  return result;
 }
 
 

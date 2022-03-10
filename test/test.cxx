@@ -7,6 +7,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/json/src.hpp>
 #include <catch2/catch.hpp>
+#include <chrono>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
@@ -68,7 +69,7 @@ TEST_CASE ("send message to game", "[game]")
   auto sendMessageBeforeStartRead = std::vector<std::string>{{R"foo(StartGame|{"players":["81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"],"gameOption":{"gameOption":{"maxCardValue":9,"typeCount":4,"numberOfCardsPlayerShouldHave":6,"roundToStart":1,"customCardDeck":null}},"ratedGame":false})foo"}};
   // clang-format on
   co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
-  ioContext.run ();
+  ioContext.run_for (std::chrono::seconds{5});
   ioContext.reset ();
   SECTION ("DurakLeaveGame")
   {
@@ -88,7 +89,7 @@ TEST_CASE ("send message to game", "[game]")
     };
     co_spawn (ioContext, connectWebsocket (user1Logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}},"user1"), printException);
     co_spawn (ioContext, connectWebsocket (user2Logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
-    ioContext.run ();
+    ioContext.run_for (std::chrono::seconds{5});
     REQUIRE (leaveGameSuccessCalledOnUser2);
   }
   SECTION ("DurakAttackPass")
@@ -109,7 +110,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
       co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
       co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-      ioContext.run ();
+      ioContext.run_for (std::chrono::seconds{5});
       REQUIRE (durakAttackPassError);
   }
   SECTION ("DurakAssistPass")
@@ -130,7 +131,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-    ioContext.run ();
+    ioContext.run_for (std::chrono::seconds{5});
     REQUIRE (durakAssistPassError);
   }
   SECTION ("DurakDefendPass")
@@ -151,7 +152,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-    ioContext.run ();
+    ioContext.run_for (std::chrono::seconds{5});
     REQUIRE (durakDefendPassError);
   }
   SECTION ("DurakDefend")
@@ -172,7 +173,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-    ioContext.run ();
+    ioContext.run_for (std::chrono::seconds{5});
     REQUIRE (durakDefendError);
   }
   SECTION ("DurakAttack")
@@ -193,7 +194,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-    ioContext.run ();
+    ioContext.run_for (std::chrono::seconds{5});
     REQUIRE (durakAttackError);
   }
   SECTION ("DurakAskDefendWantToTakeCardsAnswer")
@@ -214,7 +215,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
       co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
       co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-      ioContext.run ();
+      ioContext.run_for (std::chrono::seconds{5});
       REQUIRE (unhandledEventError);
   }
   ioContext.stop ();
@@ -249,7 +250,7 @@ TEST_CASE ("game not found", "[game]")
                   },
                   ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{ { objectToStringWithObjectName (shared_class::DurakAttack{}) } }),
               printException);
-    ioContext.run ();
+    ioContext.run_for (std::chrono::seconds{5});
     REQUIRE (unhandledEventError);
   }
   ioContext.stop ();

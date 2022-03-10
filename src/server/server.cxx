@@ -75,7 +75,10 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
                   {
                     if (auto game = ranges::find_if (games, [&accountName] (Game const &game) { return game.isUserInGame (accountName->value ()); }); game != games.end ())
                       {
-                        game->processEvent (msg, accountName->value ());
+                        if (auto const &error = game->processEvent (msg, accountName->value ()))
+                          {
+                            myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::UnhandledEventError{ msg, error.value () }));
+                          }
                       }
                   }
                 else if (accountName && not accountName->has_value ())

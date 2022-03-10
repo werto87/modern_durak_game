@@ -6,6 +6,7 @@
 #include <deque>
 #include <list>
 #include <memory>
+#include <optional>
 namespace boost::asio
 {
 class io_context;
@@ -23,7 +24,7 @@ class Game
 public:
   Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_);
 
-  void processEvent (std::string const &event, std::string const &accountName);
+  std::optional<std::string> processEvent (std::string const &event, std::string const &accountName);
 
   std::string const &gameName () const;
 
