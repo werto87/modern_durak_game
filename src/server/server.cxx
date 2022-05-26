@@ -40,12 +40,12 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
           auto accountName = std::make_shared<std::optional<std::string> > ();
           using namespace boost::asio::experimental::awaitable_operators;
           co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext] (const std::string &msg) mutable {
-            std::vector<std::string> splitMesssage{};
-            boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
-            if (splitMesssage.size () == 2)
+            std::vector<std::string> splitMessage{};
+            boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+            if (splitMessage.size () == 2)
               {
-                auto const &typeToSearch = splitMesssage.at (0);
-                auto const &objectAsString = splitMesssage.at (1);
+                auto const &typeToSearch = splitMessage.at (0);
+                auto const &objectAsString = splitMessage.at (1);
                 if (typeToSearch == "ConnectToGame")
                   {
                     auto connectToGame = stringToObject<matchmaking_game::ConnectToGame> (objectAsString);

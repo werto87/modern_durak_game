@@ -624,7 +624,7 @@ auto const handleDefendPass = [] (GameDependencies &gameDependencies, std::tuple
     }
   else
     {
-      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "account role is not defiend: " + user.accountName }));
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendPassError{ "account role is not defined: " + user.accountName }));
     }
 };
 
