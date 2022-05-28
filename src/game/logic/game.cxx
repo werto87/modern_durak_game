@@ -826,14 +826,12 @@ public:
 , state<Chill>              + event<Attack>                                                         / doAttackChill
 , state<Chill>              + event<Defend>                      [isDefendingPlayer]                / doDefend
 , state<Chill>              + event<userRelogged>                                                   / userReloggedInChillState
-// , state<Chill>              + event<_>                                                              / unhandledEvent
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskDef>             + on_entry<_>                                                           / startAskDef
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingplayerError
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [wantsToTakeCards]                 / blockOnlyDef                                = state<AskAttackAndAssist>
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer>                                    / handleDefendSuccess                         = state<Chill>
 , state<AskDef>             + event<userRelogged>                                                   / (userReloggedInAskDef)
-// , state<AskDef>             + event<_>                                                              / unhandledEvent
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskAttackAndAssist> + on_entry<_>                                                           / startAskAttackAndAssist
 , state<AskAttackAndAssist> + event<AttackPass>                                                     /(setAttackAnswer,checkAttackAndAssistAnswer)
@@ -842,7 +840,6 @@ public:
 , state<AskAttackAndAssist> + event<Attack>                                                         / doAttackAskAttackAndAssist
 , state<AskAttackAndAssist> + event<chill>                                                                                                        =state<Chill>
 , state<AskAttackAndAssist> + event<userRelogged>                                                   / userReloggedInAskAttackAssist
-// , state<AskAttackAndAssist> + event<_>                                                              / unhandledEvent
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 ,*"leaveGameHandler"_s      + event<LeaveGame>                                                      / userLeftGame                                
 ,*"timerHandler"_s          + event<initTimer>                   [timerActive]                      / initTimerHandler
