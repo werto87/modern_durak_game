@@ -2,6 +2,7 @@
 #define EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 
 #include <boost/asio/any_io_executor.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/optional/optional.hpp>
 #include <deque>
 #include <list>
@@ -22,7 +23,7 @@ class Game
 {
 
 public:
-  Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_);
+  Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_, boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_);
 
   std::optional<std::string> processEvent (std::string const &event, std::string const &accountName);
 

@@ -22,10 +22,10 @@ template <typename T> concept hasAccountName = requires (T t) { t.accountName; }
 // Debug<SomeType>{};
 
 awaitable<void>
-Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &endpoint, boost::asio::io_context &ioContext)
+Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint)
 {
   auto executor = co_await this_coro::executor;
-  tcp_acceptor acceptor (ioContext, endpoint);
+  tcp_acceptor acceptor (ioContext, userToGameViaMatchmakingEndpoint);
   for (;;)
     {
       try
@@ -39,7 +39,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection, "UserToGameViaMatchmaking", fmt::fg (fmt::color::red), std::to_string (id++) });
           auto accountName = std::make_shared<std::optional<std::string> > ();
           using namespace boost::asio::experimental::awaitable_operators;
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext] (const std::string &msg) mutable {
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext, &gameToMatchmakingEndpoint] (const std::string &msg) mutable {
             std::vector<std::string> splitMessage{};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -62,7 +62,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint const &
                           }
                         if (gameToCreate->allUsersConnected ())
                           {
-                            games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext });
+                            games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint });
                             gamesToCreate.erase (gameToCreate);
                           }
                       }

@@ -6,8 +6,9 @@
 #include <iostream>
 #include <stdexcept>
 
-auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = u_int16_t{ 33333 };
-auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = u_int16_t{ 44444 };
+auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = u_int16_t{ 3232 };
+auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = u_int16_t{ 4242 };
+auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = u_int16_t{ 12312 };
 
 int
 main ()
@@ -22,7 +23,8 @@ main ()
       using namespace boost::asio::experimental::awaitable_operators;
       auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
       auto matchmakingToGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
-      co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+      auto gameToMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_GAME_TO_MATCHMAKING };
+      co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, gameToMatchmaking) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
       ioContext.run ();
     }
   catch (std::exception &e)

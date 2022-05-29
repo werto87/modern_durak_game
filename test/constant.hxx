@@ -2,9 +2,8 @@
 #define FE334B5B_FA67_454D_A6F5_A1CBF7D02BB7
 #include <string>
 
-namespace test
-{
-
-}
+auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = u_int16_t{ 3232 };
+auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = u_int16_t{ 4242 };
+auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = u_int16_t{ 12312 };
 
 #endif /* FE334B5B_FA67_454D_A6F5_A1CBF7D02BB7 */

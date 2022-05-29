@@ -100,5 +100,8 @@ printExceptionHelper (std::exception_ptr eptr)
     }
 }
 #else
-void printExceptionHelper (std::exception_ptr) {}
+void
+printExceptionHelper (std::exception_ptr)
+{
+}
 #endif

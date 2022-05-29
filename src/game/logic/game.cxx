@@ -121,7 +121,7 @@ using namespace boost::sml;
 
 struct GameDependencies
 {
-  GameDependencies (matchmaking_game::StartGame const &startGame, std::string const &gameName_, std::list<User> &&users_, boost::asio::io_context &ioContext_) : users{ std::move (users_) }, isRanked{ startGame.ratedGame }, gameName{ gameName_ }, ioContext{ ioContext_ } {}
+  GameDependencies (matchmaking_game::StartGame const &startGame, std::string const &gameName_, std::list<User> &&users_, boost::asio::io_context &ioContext_, boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_) : users{ std::move (users_) }, isRanked{ startGame.ratedGame }, gameName{ gameName_ }, ioContext{ ioContext_ }, gameToMatchmakingEndpoint{ gameToMatchmakingEndpoint_ } {}
   TimerOption timerOption{};
   durak::Game game{};
   std::list<User> users{};
@@ -129,6 +129,7 @@ struct GameDependencies
   bool isRanked{};
   std::string gameName{};
   boost::asio::io_context &ioContext;
+  boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint{};
 };
 
 auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer; };
@@ -136,13 +137,12 @@ auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDe
 boost::asio::awaitable<void>
 sendGameOverToMatchmaking (matchmaking_game::GameOver gameOver, GameDependencies &gameDependencies)
 {
-  auto endpoint = boost::asio::ip::tcp::endpoint{ boost::asio::ip::tcp::v4 (), 22222 };
   auto ws = std::make_shared<Websocket> (gameDependencies.ioContext);
-  co_await ws->next_layer ().async_connect (endpoint);
+  co_await ws->next_layer ().async_connect (gameDependencies.gameToMatchmakingEndpoint);
   ws->next_layer ().expires_never ();
   ws->set_option (boost::beast::websocket::stream_base::timeout::suggested (boost::beast::role_type::client));
   ws->set_option (boost::beast::websocket::stream_base::decorator ([] (boost::beast::websocket::request_type &req) { req.set (boost::beast::http::field::user_agent, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-client-async"); }));
-  co_await ws->async_handshake ("localhost:" + std::to_string (endpoint.port ()), "/");
+  co_await ws->async_handshake (gameDependencies.gameToMatchmakingEndpoint.address ().to_string () + std::to_string (gameDependencies.gameToMatchmakingEndpoint.port ()), "/");
   static size_t id = 0;
   auto myWebsocket = MyWebsocket<Websocket>{ std::move (ws), "sendGameOverToMatchmaking", fmt::fg (fmt::color::cornflower_blue), std::to_string (id++) };
   co_await myWebsocket.async_write_one_message (objectToStringWithObjectName (gameOver));
@@ -897,7 +897,7 @@ struct my_logger
 
 struct Game::StateMachineWrapper
 {
-  StateMachineWrapper (Game *owner,matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_) : gameDependencies{startGame,gameName,std::move(users),ioContext_},
+  StateMachineWrapper (Game *owner,matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_,boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_) : gameDependencies{startGame,gameName,std::move(users),ioContext_,gameToMatchmakingEndpoint_},
   impl (owner,
 #ifdef LOG_FOR_STATE_MACHINE
                                                                                               logger,
@@ -922,7 +922,7 @@ Game::StateMachineWrapperDeleter::operator() (StateMachineWrapper *p)
 
 
 
-Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_): sm{ new StateMachineWrapper{this,startGame,gameName,std::move(users),ioContext_} } {
+Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_,boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_): sm{ new StateMachineWrapper{this,startGame,gameName,std::move(users),ioContext_,gameToMatchmakingEndpoint_} } {
   auto userNames=std::vector<std::string>{};
   ranges::transform(sm->gameDependencies.users,ranges::back_inserter(userNames),[](User const& user){return user.accountName;});
   sm->gameDependencies.game=durak::Game{std::move(userNames),startGame.gameOption.gameOption};
