@@ -8,7 +8,7 @@
 
 auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = u_int16_t{ 3232 };
 auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = u_int16_t{ 4242 };
-auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = u_int16_t{ 12312 };
+auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = u_int16_t{ 12312 }; 
 
 int
 main ()
