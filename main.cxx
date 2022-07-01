@@ -17,13 +17,24 @@ int
 main ()
 {
   using namespace durak_computer_controlled_opponent;
-  soci::session sql (soci::sqlite3, database::databaseName);
   database::createDatabaseIfNotExist ();
+  soci::session sql (soci::sqlite3, database::databaseName);
   if (not confu_soci::doesTableExist (sql, confu_soci::typeNameWithOutNamespace (database::Round{})))
     {
       database::createTables ();
       auto gameLookup = std::map<std::tuple<uint8_t, uint8_t>, std::array<std::map<std::tuple<std::vector<uint8_t>, std::vector<uint8_t> >, std::vector<std::tuple<uint8_t, Result> > >, 4> >{};
+      std::cout << "create new game lookup table" << std::endl;
+      std::cout << "solveDurak (36, 1, 1, gameLookup) }) " << std::endl;
       gameLookup.insert ({ { 1, 1 }, solveDurak (36, 1, 1, gameLookup) });
+      std::cout << "solveDurak (36, 2, 2, gameLookup) }) " << std::endl;
+      gameLookup.insert ({ { 2, 2 }, solveDurak (36, 2, 2, gameLookup) });
+      std::cout << "solveDurak (36, 3, 1, gameLookup) }) " << std::endl;
+      gameLookup.insert ({ { 3, 1 }, solveDurak (36, 3, 1, gameLookup) });
+      std::cout << "solveDurak (36, 2, 4, gameLookup) }) " << std::endl;
+      gameLookup.insert ({ { 2, 4 }, solveDurak (36, 2, 4, gameLookup) });
+      std::cout << "solveDurak (36, 3, 3, gameLookup) }) " << std::endl;
+      gameLookup.insert ({ { 3, 3 }, solveDurak (36, 3, 3, gameLookup) });
+      std::cout << "finished creating game lookup table " << std::endl;
       database::insertGameLookUp (gameLookup);
     }
   try
