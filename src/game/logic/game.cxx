@@ -754,32 +754,6 @@ template <typename... T> struct is_tuple<std::tuple<T...> > : std::true_type
 {
 };
 
-auto const unhandledEvent = [] (auto const &event) {
-  if constexpr (is_tuple<typename std::decay<decltype (event)>::type>::value)
-    {
-      using eventType = typename std::decay<decltype (std::get<0> (event))>::type;
-      using userType = typename std::decay<decltype (std::get<1> (event))>::type;
-      if constexpr (std::same_as<userType, User> &&
-                    // orthogonal states lead to unhandled events even if the event is handled in another state but not in both.
-                    not std::same_as<eventType, shared_class::DurakLeaveGame>)
-        {
-          auto [durakEvent, user] = event;
-          user.sendMsgToUser (objectToStringWithObjectName (shared_class::UnhandledEventError{ boost::typeindex::type_id<typename std::decay<decltype (std::get<0> (event))>::type> ().pretty_name () }));
-#ifdef LOG_FOR_STATE_MACHINE
-          fmt::print (fmt::fg (fmt::color::orange_red), "[unhandled event]\t\t  {}", boost::typeindex::type_id<typename std::decay<decltype (std::get<0> (event))>::type> ().pretty_name ());
-          std::cout << std::endl;
-#endif
-        }
-    }
-  else
-    {
-#ifdef LOG_FOR_STATE_MACHINE
-      fmt::print (fmt::fg (fmt::color::orange_red), "[unhandled event]\t\t  {}", boost::typeindex::type_id<typename std::decay<decltype (event)>::type> ().pretty_name ());
-      std::cout << std::endl;
-#endif
-    }
-};
-
 auto const needsToBeDefendingPlayerError = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser, GameDependencies &gameDependencies) {
   auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "Wrong role error. To take or discard cards you need to have the role defend. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
