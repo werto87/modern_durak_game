@@ -4,7 +4,7 @@ catch2/2.13.7
 confu_json/0.0.8@werto87/stable
 durak/0.0.8@werto87/stable
 range-v3/0.12.0@werto87/stable
-sml/1.1.4
+sml/1.1.5
 magic_enum/0.7.3
 durak_computer_controlled_opponent/0.0.1
 [generators]
