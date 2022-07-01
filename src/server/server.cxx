@@ -149,12 +149,12 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection, "MatchmakingToGame", fmt::fg (fmt::color::blue_violet), std::to_string (id++) });
           using namespace boost::asio::experimental::awaitable_operators;
           co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &gamesToCreate = gamesToCreate] (const std::string &msg) {
-            std::vector<std::string> splitMesssage{};
-            boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
-            if (splitMesssage.size () == 2)
+            std::vector<std::string> splitMessage{};
+            boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+            if (splitMessage.size () == 2)
               {
-                auto const &typeToSearch = splitMesssage.at (0);
-                auto const &objectAsString = splitMesssage.at (1);
+                auto const &typeToSearch = splitMessage.at (0);
+                auto const &objectAsString = splitMessage.at (1);
                 if (typeToSearch == "StartGame")
                   {
                     // TODO this should be create game success and not start game success because game is not started it is waiting for user
