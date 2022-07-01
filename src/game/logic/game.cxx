@@ -147,12 +147,12 @@ sendGameOverToMatchmaking (matchmaking_game::GameOver gameOver, GameDependencies
   auto myWebsocket = MyWebsocket<Websocket>{ std::move (ws), "sendGameOverToMatchmaking", fmt::fg (fmt::color::cornflower_blue), std::to_string (id++) };
   co_await myWebsocket.async_write_one_message (objectToStringWithObjectName (gameOver));
   auto msg = co_await myWebsocket.async_read_one_message ();
-  std::vector<std::string> splitMesssage{};
-  boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
-  if (splitMesssage.size () == 2)
+  std::vector<std::string> splitMessage{};
+  boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+  if (splitMessage.size () == 2)
     {
-      auto const &typeToSearch = splitMesssage.at (0);
-      auto const &objectAsString = splitMesssage.at (1);
+      auto const &typeToSearch = splitMessage.at (0);
+      auto const &objectAsString = splitMessage.at (1);
       if (typeToSearch == "GameOverSuccess")
         {
           // TODO maybe need to do something???
@@ -780,7 +780,7 @@ auto const unhandledEvent = [] (auto const &event) {
     }
 };
 
-auto const needsToBeDefendingplayerError = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser, GameDependencies &gameDependencies) {
+auto const needsToBeDefendingPlayerError = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser, GameDependencies &gameDependencies) {
   auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "Wrong role error. To take or discard cards you need to have the role defend. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
 };
@@ -828,7 +828,7 @@ public:
 , state<Chill>              + event<userRelogged>                                                   / userReloggedInChillState
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskDef>             + on_entry<_>                                                           / startAskDef
-, state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingplayerError
+, state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingPlayerError
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [wantsToTakeCards]                 / blockOnlyDef                                = state<AskAttackAndAssist>
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer>                                    / handleDefendSuccess                         = state<Chill>
 , state<AskDef>             + event<userRelogged>                                                   / (userReloggedInAskDef)
@@ -934,13 +934,13 @@ Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gam
 
 
 std::optional<std::string> Game::processEvent (std::string const &event, std::string const &accountName) {
-  std::vector<std::string> splitMesssage{};
-  boost::algorithm::split (splitMesssage, event, boost::is_any_of ("|"));
+  std::vector<std::string> splitMessage{};
+  boost::algorithm::split (splitMessage, event, boost::is_any_of ("|"));
   auto result=std::optional<std::string>{};
-  if (splitMesssage.size () == 2)
+  if (splitMessage.size () == 2)
     {
-      auto const &typeToSearch = splitMesssage.at (0);
-      auto const &objectAsString = splitMesssage.at (1);
+      auto const &typeToSearch = splitMessage.at (0);
+      auto const &objectAsString = splitMessage.at (1);
       bool typeFound = false;
       boost::hana::for_each (shared_class::gameTypes, [&] (const auto &x) {
             if (typeToSearch == confu_json::type_name<typename std::decay<decltype (x)>::type> ())
