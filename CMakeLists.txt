@@ -34,6 +34,7 @@ target_link_libraries(${TARGET_NAME_LIB} PUBLIC
   CONAN_PKG::durak
   CONAN_PKG::sml
   CONAN_PKG::durak_computer_controlled_opponent
+  CONAN_PKG::confu_soci
   pthread
 )
 target_compile_definitions(${TARGET_NAME_LIB} PUBLIC
