@@ -34,8 +34,9 @@ main ()
       gameLookup.insert ({ { 2, 4 }, solveDurak (36, 2, 4, gameLookup) });
       std::cout << "solveDurak (36, 3, 3, gameLookup) }) " << std::endl;
       gameLookup.insert ({ { 3, 3 }, solveDurak (36, 3, 3, gameLookup) });
-      std::cout << "finished creating game lookup table " << std::endl;
+      std::cout << "insert look up table into database" << std::endl;
       database::insertGameLookUp (gameLookup);
+      std::cout << "finished creating game lookup table " << std::endl;
     }
   try
     {
