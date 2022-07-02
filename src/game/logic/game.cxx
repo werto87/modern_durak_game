@@ -483,13 +483,10 @@ auto const startAskDef = [] (GameDependencies &gameDependencies, boost::sml::bac
 };
 
 auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakLeaveGame, User &> const &leaveGameEventUser) {
+  // TODO i think this should be auto &[event, user] = leaveGameEventUser; in all places where this construct is used
   auto [event, user] = leaveGameEventUser;
   removeUserFromGame (user.accountName, gameDependencies);
   ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
-  // if (auto userItr = ranges::find_if (gameDependencies.users, [accountName = user.accountName] (User const &user_) { return user_.accountName == accountName; }); userItr != gameDependencies.users.end ())
-  //   {
-  //     gameDependencies.users.erase (userItr);
-  //   }
 };
 
 auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
