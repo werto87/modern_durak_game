@@ -29,6 +29,7 @@
 #include <boost/mpl/if.hpp>
 #include <boost/mpl/range_c.hpp>
 #include <cstddef>
+#include <durak/card.hxx>
 #include <durak/gameData.hxx>
 #include <durak/gameOption.hxx>
 #include <iostream>
@@ -120,6 +121,10 @@ BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOptionError, (std::string, e
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), UnhandledEventError, (std::string, unhandledEvent) (std::string, reason))
 // MODERN DURAK TYPES //////////////////////////////////////////////////////////////////////////////////////////////
 
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakNextMove, )
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakNextMoveError, (std::string, error))
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakNextMoveSuccess, (shared_class::Move, nextMove) (durak::Card, card))
+
 // clang-format off
 namespace shared_class{
     // TODO-TEMPLATE add new type to handle in server
@@ -154,7 +159,8 @@ DurakGameOverDraw,
 DurakLeaveGame,
 DurakLeaveGameError,
 DurakTimers,
-DurakAllowedMoves
+DurakAllowedMoves,
+DurakNextMove
   >  const gameTypes{};
 }
 // clang-format on

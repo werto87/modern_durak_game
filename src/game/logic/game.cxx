@@ -492,6 +492,11 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   //   }
 };
 
+auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
+  auto &[event, user] = durakNextMoveUser;
+  // TODO check for next move
+};
+
 auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boost::sml::back::process<pauseTimer, nextRoundTimer, resumeTimer, sendTimerEv> process_event) {
   if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer ())
     {
@@ -782,6 +787,7 @@ public:
     using Defend = std::tuple<DurakDefend, User &>;
     using DefendWantToTakeCardsAnswer = std::tuple<DurakAskDefendWantToTakeCardsAnswer, User &>;
     using LeaveGame = std::tuple<DurakLeaveGame, User &>;
+    using NextMove = std::tuple<DurakNextMove, User &>;
     return make_transition_table (
 
         // clang-format off
@@ -816,6 +822,7 @@ public:
 , state<AskAttackAndAssist> + event<userRelogged>                                                   / userReloggedInAskAttackAssist
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 ,*"leaveGameHandler"_s      + event<LeaveGame>                                                      / userLeftGame                                
+,*"nextMove"_s              + event<NextMove>                                                       / nextMove                                
 ,*"timerHandler"_s          + event<initTimer>                   [timerActive]                      / initTimerHandler
 , "timerHandler"_s          + event<nextRoundTimer>              [timerActive]                      / nextRoundTimerHandler
 , "timerHandler"_s          + event<pauseTimer>                  [timerActive]                      / pauseTimerHandler
