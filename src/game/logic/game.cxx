@@ -787,7 +787,7 @@ public:
         // clang-format off
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 * "init"_s                  + event<start>                                                  
-                            /(sendStartGameToUser,roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                                     = state<Chill>   
+                            /(sendStartGameToUser,roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                 = state<Chill>   
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<Chill>              + on_entry<_>                        [isNotFirstRound]               
                             /(resetPassStateMachineData,process (nextRoundTimer{}),roundStartSendAllowedMovesAndGameData)           
