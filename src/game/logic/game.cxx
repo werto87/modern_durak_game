@@ -2,9 +2,11 @@
 #include "durak/card.hxx"
 #include "durak/game.hxx"
 #include "durak/gameData.hxx"
+#include "src/database.hxx"
 #include "src/serialization.hxx"
 #include "src/server/user.hxx"
 #include "src/util.hxx"
+#include <algorithm>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/asio/io_context.hpp>
@@ -21,13 +23,20 @@
 #include <confu_json/concept.hxx>
 #include <confu_json/confu_json.hxx>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <durak/gameOption.hxx>
+#include <durak_computer_controlled_opponent/compressCard.hxx>
+#include <durak_computer_controlled_opponent/solve.hxx>
 #include <fmt/format.h>
 #include <iostream>
 #include <magic_enum.hpp>
 #include <optional>
+#include <pipes/dev_null.hpp>
+#include <pipes/mux.hpp>
+#include <pipes/pipes.hpp>
 #include <pipes/push_back.hpp>
+#include <pipes/transform.hpp>
 #include <pipes/unzip.hpp>
 #include <queue>
 #include <range/v3/action/erase.hpp>
@@ -42,6 +51,7 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -489,9 +499,170 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
 };
 
+std::optional<durak_computer_controlled_opponent::Action>
+nextActionForRole (std::vector<std::tuple<uint8_t, durak_computer_controlled_opponent::Result> > const &nextActions, durak::PlayerRole const &playerRole)
+{
+  if (playerRole == durak::PlayerRole::attack || playerRole == durak::PlayerRole::defend)
+    {
+      if (auto winningAction = ranges::find_if (nextActions,
+                                                [&playerRole] (std::tuple<uint8_t, durak_computer_controlled_opponent::Result> const &actionAsBinaryAndResult) {
+                                                  auto const &[actionAsBinary, result] = actionAsBinaryAndResult;
+                                                  if (playerRole == durak::PlayerRole::attack)
+                                                    {
+                                                      return result == durak_computer_controlled_opponent::Result::AttackWon;
+                                                    }
+                                                  else
+                                                    {
+                                                      return result == durak_computer_controlled_opponent::Result::DefendWon;
+                                                    }
+                                                });
+          winningAction != nextActions.end ())
+        {
+          return { durak_computer_controlled_opponent::Action{ std::get<0> (*winningAction) } };
+        }
+      else
+        {
+          if (auto drawAction = ranges::find_if (nextActions,
+                                                 [] (auto const &actionAsBinaryAndResult) {
+                                                   auto const &[actionAsBinary, result] = actionAsBinaryAndResult;
+                                                   return result == durak_computer_controlled_opponent::Result::Draw;
+                                                 });
+              drawAction != nextActions.end ())
+            {
+              return { durak_computer_controlled_opponent::Action{ std::get<0> (*drawAction) } };
+            }
+        }
+    }
+  return {};
+}
+
+shared_class::DurakNextMoveSuccess
+calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping)
+{
+  if (action.has_value ())
+    {
+      if (playerRole == durak::PlayerRole::attack)
+        {
+          if (ranges::find (moves, shared_class::Move::AddCards) != moves.end ())
+            {
+              if (auto idCard = ranges::find_if (attackIdCardMapping,
+                                                 [value = action->value ()] (auto const &idAndCard) {
+                                                   //
+                                                   return value == std::get<0> (idAndCard);
+                                                 });
+                  idCard != attackIdCardMapping.end ())
+                {
+                  return { shared_class::Move::AddCards, std::get<1> (*idCard) };
+                }
+              else
+                {
+                  throw std::logic_error{ "attack play card but card could not be found in id card mapping" };
+                  return {};
+                }
+            }
+          else if (ranges::find (moves, shared_class::Move::AttackAssistPass) != moves.end ())
+            {
+              return { shared_class::Move::AttackAssistPass, {} };
+            }
+          else
+            {
+              throw std::logic_error{ "attack move should be add card or pass" };
+              return {};
+            }
+        }
+      else if (playerRole == durak::PlayerRole::defend)
+        {
+          if (ranges::find (moves, shared_class::Move::Defend) != moves.end ())
+            {
+              if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != attackIdCardMapping.end ())
+                {
+                  return { shared_class::Move::Defend, std::get<1> (*idCard) };
+                }
+              else
+                {
+                  throw std::logic_error{ "defend play card but card could not be found in id card mapping" };
+                  return {};
+                }
+            }
+          else if (ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
+            {
+              return { shared_class::Move::TakeCards, {} };
+            }
+          else
+            {
+              throw std::logic_error{ "defend move should be take or beat cards" };
+              return {};
+            }
+        }
+      else
+        {
+          throw std::logic_error{ "role should be attack or defend" };
+          return {};
+        }
+    }
+  else
+    {
+      return {};
+    }
+}
+
+durak::PlayerRole
+whoHasToMove (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > const &table)
+{
+  return (table.size () % 2 == 0) ? durak::PlayerRole::attack : durak::PlayerRole::defend;
+}
+
+std::tuple<std::vector<std::tuple<uint8_t, durak::Card> >, std::vector<std::tuple<uint8_t, durak::Card> > >
+calcCompressedCardsForAttackAndDefend (durak::Game const &game)
+{
+  using namespace durak_computer_controlled_opponent;
+  auto cards = game.getAttackingPlayer ()->getCards ();
+  auto defendingCards = game.getDefendingPlayer ()->getCards ();
+  cards.insert (cards.end (), defendingCards.begin (), defendingCards.end ());
+  auto cardsAsIds = cardsToIds (compress (cards));
+  auto attackingCardsAsIds = std::vector<uint8_t>{ cardsAsIds.begin (), cardsAsIds.begin () + 3 };
+  auto attackingCardsAsIdsAndAsCards = std::vector<std::tuple<uint8_t, durak::Card> >{};
+  pipes::mux (attackingCardsAsIds, game.getAttackingPlayer ()->getCards ()) >>= pipes::transform ([] (auto const &x, auto const &y) { return std::tuple<uint8_t, durak::Card>{ x, y }; }) >>= pipes::push_back (attackingCardsAsIdsAndAsCards);
+  ranges::sort (attackingCardsAsIdsAndAsCards, [] (auto const &x, auto const &y) { return std::get<0> (x) < std::get<0> (y); });
+  auto defendingCardsAsIds = std::vector<uint8_t>{ cardsAsIds.begin () + 3, cardsAsIds.end () };
+  auto defendingCardsAsIdsAndAsCards = std::vector<std::tuple<uint8_t, durak::Card> >{};
+  pipes::mux (defendingCardsAsIds, game.getDefendingPlayer ()->getCards ()) >>= pipes::transform ([] (auto const &x, auto const &y) { return std::tuple<uint8_t, durak::Card>{ x, y }; }) >>= pipes::push_back (defendingCardsAsIdsAndAsCards);
+  ranges::sort (defendingCardsAsIdsAndAsCards, [] (auto const &x, auto const &y) { return std::get<0> (x) < std::get<0> (y); });
+  return { attackingCardsAsIdsAndAsCards, defendingCardsAsIdsAndAsCards };
+}
+
 auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
   auto &[event, user] = durakNextMoveUser;
-  // TODO check for next move
+  auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
+  if (whoHasToMove (gameDependencies.game.getTable ()) == playerRole)
+    {
+      using namespace durak;
+      using namespace durak_computer_controlled_opponent;
+      soci::session sql (soci::sqlite3, database::databaseName);
+      auto const [compressedCardsForAttack, compressedCardsForDefend] = calcCompressedCardsForAttackAndDefend (gameDependencies.game);
+      auto attackCardsCompressed = std::vector<uint8_t>{};
+      compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+      auto defendCardsCompressed = std::vector<uint8_t>{};
+      compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+      auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
+      if (someRound.has_value ())
+        {
+          auto moveResult = binaryToMoveResult (someRound.value ().combination);
+          auto result = nextActions ({ 0 }, moveResult);
+          auto actionForRole = nextActionForRole (result, playerRole);
+          auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
+          auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+          user.sendMsgToUser (objectToStringWithObjectName (calculatedNextMove));
+        }
+      else
+        {
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a game for the cards." }));
+        }
+    }
+  else
+    {
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "player does not have to make a move so wait for the other player." }));
+    }
 };
 
 auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boost::sml::back::process<pauseTimer, nextRoundTimer, resumeTimer, sendTimerEv> process_event) {
