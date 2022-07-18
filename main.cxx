@@ -1,6 +1,6 @@
-#include "src/database.hxx"
-#include "src/server/server.hxx"
-#include "src/util.hxx"
+#include "example_of_a_game_server/database.hxx"
+#include "example_of_a_game_server/server/server.hxx"
+#include "example_of_a_game_server/util.hxx"
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/json/src.hpp>
 #include <confu_soci/convenienceFunctionForSoci.hxx>

@@ -1,5 +1,5 @@
-#include "src/util.hxx"
-#include "src/serialization.hxx"
+#include "example_of_a_game_server/util.hxx"
+#include "example_of_a_game_server/serialization.hxx"
 #include <durak/game.hxx>
 #include <durak/gameData.hxx>
 #include <map>

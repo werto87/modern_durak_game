@@ -1,8 +1,8 @@
 #ifndef FB5474CE_322D_4D7A_B298_185229E7B05A
 #define FB5474CE_322D_4D7A_B298_185229E7B05A
 
-#include "src/server/myWebsocket.hxx"
-#include "src/util.hxx"
+#include "example_of_a_game_server/server/myWebsocket.hxx"
+#include "example_of_a_game_server/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/co_spawn.hpp>

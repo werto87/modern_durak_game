@@ -1,8 +1,8 @@
 #ifndef EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1
 #define EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1
 #include "confu_json/confu_json.hxx"
-#include "src/game/logic/allowedMoves.hxx"
-#include "src/server/user.hxx"
+#include "example_of_a_game_server/game/logic/allowedMoves.hxx"
+#include "example_of_a_game_server/server/user.hxx"
 #include <durak/game.hxx>
 #include <durak/gameData.hxx>
 template <typename TypeToSend>

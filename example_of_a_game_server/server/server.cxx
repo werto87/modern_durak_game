@@ -1,7 +1,7 @@
 #include "server.hxx"
 #include "boost/asio/experimental/awaitable_operators.hpp"
-#include "src/serialization.hxx"
-#include "src/util.hxx"
+#include "example_of_a_game_server/serialization.hxx"
+#include "example_of_a_game_server/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/this_coro.hpp>

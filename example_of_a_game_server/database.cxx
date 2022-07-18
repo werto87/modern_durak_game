@@ -1,4 +1,4 @@
-#include "src/database.hxx"
+#include "example_of_a_game_server/database.hxx"
 #include "durak_computer_controlled_opponent/compressCard.hxx"
 #include "durak_computer_controlled_opponent/util.hxx"
 #include <charconv>

@@ -1,7 +1,7 @@
+#include "example_of_a_game_server/serialization.hxx"
+#include "example_of_a_game_server/server/server.hxx"
+#include "example_of_a_game_server/util.hxx"
 #include "mockserver.hxx"
-#include "src/serialization.hxx"
-#include "src/server/server.hxx"
-#include "src/util.hxx"
 #include "test/constant.hxx"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>

@@ -2,10 +2,10 @@
 #include "durak/card.hxx"
 #include "durak/game.hxx"
 #include "durak/gameData.hxx"
-#include "src/database.hxx"
-#include "src/serialization.hxx"
-#include "src/server/user.hxx"
-#include "src/util.hxx"
+#include "example_of_a_game_server/database.hxx"
+#include "example_of_a_game_server/serialization.hxx"
+#include "example_of_a_game_server/server/user.hxx"
+#include "example_of_a_game_server/util.hxx"
 #include <algorithm>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
