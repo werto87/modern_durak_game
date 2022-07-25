@@ -26,7 +26,7 @@ main (int argc, char **argv)
     .addOption("port-matchmaking-to-game", DEFAULT_PORT_MATCHMAKING_TO_GAME).setHelp("port-matchmaking-to-game", "port matchmaking to game")
     .addOption("port-game-to-matchmaking", DEFAULT_PORT_GAME_TO_MATCHMAKING).setHelp("port-game-to-matchmaking", "port game to matchmaking")
     .addOption("address-of-matchmaking", DEFAULT_ADDRESS_OF_MATCHMAKING).setHelp("address-of-matchmaking", "address of matchmaking")
-    .setGlobalHelp("A brief description")
+    .setGlobalHelp("durak game")
     .parse(argc, argv);
 
   using namespace durak_computer_controlled_opponent;
