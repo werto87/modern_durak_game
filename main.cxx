@@ -64,7 +64,7 @@ main (int argc, char **argv)
       auto const PORT_GAME_TO_MATCHMAKING = boost::numeric_cast<u_int16_t>(std::stoul(args.value ("port-game-to-matchmaking")));
       std::string raw_ip_address = args.value ("address-of-matchmaking");
       boost::system::error_code ec;
-      boost::asio::ip::address ip_address =
+      auto const ADDRESS_MATCHMAKING =
       boost::asio::ip::address::from_string(raw_ip_address, ec);
       if (ec.value() != 0) {
       std::cout << " Failed to parse the IP address: '" << raw_ip_address << "' Error code = " << ec.value() << ". Message: " << ec.message()<<std::endl;
@@ -72,7 +72,7 @@ main (int argc, char **argv)
       }
       auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), PORT_USER_TO_GAME_VIA_MATCHMAKING };
       auto matchmakingToGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), PORT_MATCHMAKING_TO_GAME };
-      auto gameToMatchmaking = boost::asio::ip::tcp::endpoint{ ip_address, PORT_GAME_TO_MATCHMAKING };
+      auto gameToMatchmaking = boost::asio::ip::tcp::endpoint{ ADDRESS_MATCHMAKING, PORT_GAME_TO_MATCHMAKING };
       co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, gameToMatchmaking) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
       ioContext.run ();
     }
