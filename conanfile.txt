@@ -8,6 +8,7 @@ sml/1.1.5
 magic_enum/0.7.3
 durak_computer_controlled_opponent/0.0.1
 confu_soci/0.3.2@werto87/stable
+corrade/2020.06
 [generators]
 cmake
 [options]

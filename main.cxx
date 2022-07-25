@@ -1,21 +1,34 @@
 #include "example_of_a_game_server/database.hxx"
 #include "example_of_a_game_server/server/server.hxx"
 #include "example_of_a_game_server/util.hxx"
+#include <Corrade/Utility/Arguments.h>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/json/src.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 #include <confu_soci/convenienceFunctionForSoci.hxx>
 #include <durak_computer_controlled_opponent/solve.hxx>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
-
-auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = u_int16_t{ 3232 };
-auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = u_int16_t{ 4242 };
-auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = u_int16_t{ 12312 };
+#include <string>
+auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = std::string{ "3232" };
+auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = std::string{ "4242" };
+auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = std::string{ "12312" };
+auto const DEFAULT_ADDRESS_OF_MATCHMAKING = std::string{ "127.0.0.1" };
 
 int
-main ()
+main (int argc, char **argv)
 {
+  Corrade::Utility::Arguments args{};
+  // clang-format off
+  args
+    .addOption("port-user-to-game-via-matchmaking", DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING).setHelp("port-user-to-game-via-matchmaking", "port user to game via matchmaking")
+    .addOption("port-matchmaking-to-game", DEFAULT_PORT_MATCHMAKING_TO_GAME).setHelp("port-matchmaking-to-game", "port matchmaking to game")
+    .addOption("port-game-to-matchmaking", DEFAULT_PORT_GAME_TO_MATCHMAKING).setHelp("port-game-to-matchmaking", "port game to matchmaking")
+    .addOption("address-of-matchmaking", DEFAULT_ADDRESS_OF_MATCHMAKING).setHelp("address-of-matchmaking", "address of matchmaking")
+    .setGlobalHelp("A brief description")
+    .parse(argc, argv);
+
   using namespace durak_computer_controlled_opponent;
   database::createDatabaseIfNotExist ();
   soci::session sql (soci::sqlite3, database::databaseName);
@@ -46,9 +59,20 @@ main ()
       signals.async_wait ([&] (auto, auto) { ioContext.stop (); });
       auto server = Server{};
       using namespace boost::asio::experimental::awaitable_operators;
-      auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-      auto matchmakingToGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
-      auto gameToMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_GAME_TO_MATCHMAKING };
+      auto const PORT_USER_TO_GAME_VIA_MATCHMAKING =  boost::numeric_cast<u_int16_t>(std::stoul(args.value ("port-user-to-game-via-matchmaking")));
+      auto const PORT_MATCHMAKING_TO_GAME = boost::numeric_cast<u_int16_t>(std::stoul(args.value ("port-matchmaking-to-game")));
+      auto const PORT_GAME_TO_MATCHMAKING = boost::numeric_cast<u_int16_t>(std::stoul(args.value ("port-game-to-matchmaking")));
+      std::string raw_ip_address = args.value ("address-of-matchmaking");
+      boost::system::error_code ec;
+      boost::asio::ip::address ip_address =
+      boost::asio::ip::address::from_string(raw_ip_address, ec);
+      if (ec.value() != 0) {
+      std::cout << " Failed to parse the IP address: '" << raw_ip_address << "' Error code = " << ec.value() << ". Message: " << ec.message()<<std::endl;
+      return ec.value();
+      }
+      auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), PORT_USER_TO_GAME_VIA_MATCHMAKING };
+      auto matchmakingToGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), PORT_MATCHMAKING_TO_GAME };
+      auto gameToMatchmaking = boost::asio::ip::tcp::endpoint{ ip_address, PORT_GAME_TO_MATCHMAKING };
       co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, gameToMatchmaking) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
       ioContext.run ();
     }
