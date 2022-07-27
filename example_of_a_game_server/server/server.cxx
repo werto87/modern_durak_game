@@ -22,7 +22,7 @@ template <typename T> concept hasAccountName = requires (T t) { t.accountName; }
 // Debug<SomeType>{};
 
 awaitable<void>
-Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint)
+Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, std::string matchmakingHost, std::string matchmakingPort)
 {
   auto executor = co_await this_coro::executor;
   tcp_acceptor acceptor (ioContext, userToGameViaMatchmakingEndpoint);
@@ -39,7 +39,9 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket>{ connection, "UserToGameViaMatchmaking", fmt::fg (fmt::color::red), std::to_string (id++) });
           auto accountName = std::make_shared<std::optional<std::string> > ();
           using namespace boost::asio::experimental::awaitable_operators;
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext, &gameToMatchmakingEndpoint] (const std::string &msg) mutable {
+          tcp::resolver resolv{ ioContext };
+          auto resolvedGameToMatchmakingEndpoint = co_await resolv.async_resolve (ip::tcp::v4 (), matchmakingHost, matchmakingPort, use_awaitable);
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint ()] (const std::string &msg) mutable {
             std::vector<std::string> splitMessage{};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
