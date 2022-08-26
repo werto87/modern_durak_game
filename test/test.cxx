@@ -53,11 +53,11 @@ TEST_CASE ("send message to game", "[game]")
   auto handleMsgFromGame = [&gameName] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> >) {
     if (msg.starts_with ("StartGameSuccess"))
       {
-        std::vector<std::string> splitMesssage{};
-        boost::algorithm::split (splitMesssage, msg, boost::is_any_of ("|"));
-        if (splitMesssage.size () == 2)
+        std::vector<std::string> splitMessage{};
+        boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+        if (splitMessage.size () == 2)
           {
-            auto const &objectAsString = splitMesssage.at (1);
+            auto const &objectAsString = splitMessage.at (1);
             gameName = stringToObject<matchmaking_game::StartGameSuccess> (objectAsString).gameName;
             ioContext.stop ();
           }
