@@ -227,6 +227,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("NextMove")
   {
+    // TODO create test database and delete it after usage. THIS test should not be dependent on an already available database
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto unhandledEventError = false;
     auto someMsg = [&unhandledEventError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
