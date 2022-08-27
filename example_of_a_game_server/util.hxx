@@ -3,6 +3,7 @@
 #include "confu_json/confu_json.hxx"
 #include "example_of_a_game_server/game/logic/allowedMoves.hxx"
 #include "example_of_a_game_server/server/user.hxx"
+#include <confu_json/util.hxx>
 #include <durak/game.hxx>
 #include <durak/gameData.hxx>
 template <typename TypeToSend>
@@ -20,16 +21,26 @@ stringToObject (std::string const &objectAsString)
 {
   T t{};
   boost::json::error_code ec{};
-  auto jsonValue = confu_json::read_json (objectAsString, ec);
-  if (ec)
+  try
     {
-      std::cerr << "error while parsing string: error code: " << ec << std::endl;
-      std::cerr << "error while parsing string: stringToParse: " << objectAsString << std::endl;
+      auto jsonValue = confu_json::read_json (objectAsString, ec);
+      if (ec)
+        {
+          std::cerr << "error while parsing string: error code: " << ec << std::endl;
+          std::cerr << "error while parsing string: stringToParse: " << objectAsString << std::endl;
+        }
+      else
+        {
+          t = confu_json::to_object<T> (jsonValue);
+        }
     }
-  else
+  catch (...)
     {
-      t = confu_json::to_object<T> (jsonValue);
+      std::cout << "confu_json::read_json exception. Trying to parse '" << confu_json::type_name<T> () << "'. Trying to transform message: '" << objectAsString << "'" << std::endl;
+      std::cout << "example json for '" << confu_json::type_name<T> () << confu_json::type_name<T> () << "': '" << objectToStringWithObjectName (T{}) << "'" << std::endl;
+      throw;
     }
+
   return t;
 }
 
