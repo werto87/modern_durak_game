@@ -1,3 +1,4 @@
+#include "example_of_a_game_server/database.hxx"
 #include "example_of_a_game_server/serialization.hxx"
 #include "example_of_a_game_server/server/server.hxx"
 #include "example_of_a_game_server/util.hxx"
@@ -70,7 +71,7 @@ TEST_CASE ("send message to game", "[game]")
   // clang-format off
   auto startGame=matchmaking_game::StartGame{};
   startGame.players={"81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-  startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=3;
+  startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
   startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs},{2,durak::Type::diamonds},{3,durak::Type::diamonds}};
   auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
   // clang-format on
