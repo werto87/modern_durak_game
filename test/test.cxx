@@ -72,7 +72,7 @@ TEST_CASE ("send message to game", "[game]")
   auto startGame=matchmaking_game::StartGame{};
   startGame.players={"81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
   startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-  startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs},{2,durak::Type::diamonds},{3,durak::Type::diamonds}};
+  startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
   auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
   // clang-format on
   co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
@@ -227,7 +227,6 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("NextMove")
   {
-    // TODO create test database and delete it after usage. THIS test should not be dependent on an already available database
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto unhandledEventError = false;
     auto someMsg = [&unhandledEventError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
