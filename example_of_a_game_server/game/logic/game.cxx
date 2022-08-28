@@ -620,6 +620,8 @@ calcCompressedCardsForAttackAndDefend (durak::Game const &game)
   auto defendingCards = game.getDefendingPlayer ()->getCards ();
   cards.insert (cards.end (), defendingCards.begin (), defendingCards.end ());
   auto cardsAsIds = cardsToIds (compress (cards));
+  // TODO why +3
+  // TODO write a test for this function
   auto attackingCardsAsIds = std::vector<uint8_t>{ cardsAsIds.begin (), cardsAsIds.begin () + 3 };
   auto attackingCardsAsIdsAndAsCards = std::vector<std::tuple<uint8_t, durak::Card> >{};
   pipes::mux (attackingCardsAsIds, game.getAttackingPlayer ()->getCards ()) >>= pipes::transform ([] (auto const &x, auto const &y) { return std::tuple<uint8_t, durak::Card>{ x, y }; }) >>= pipes::push_back (attackingCardsAsIdsAndAsCards);
