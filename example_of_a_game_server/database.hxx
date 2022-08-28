@@ -9,7 +9,7 @@ BOOST_FUSION_DEFINE_STRUCT ((database), Round, (std::string, gameState) (std::ve
 
 namespace database
 {
-std::string const databaseName = "database/combination.db";
+std::string const databaseName = std::string{ PROJECT_ROOT } + "/database/combination.db";
 
 void createEmptyDatabase ();
 
