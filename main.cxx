@@ -28,7 +28,7 @@ main (int argc, char **argv)
     .addOption("address-of-matchmaking", DEFAULT_ADDRESS_OF_MATCHMAKING).setHelp("address-of-matchmaking", "address of matchmaking")
     .setGlobalHelp("durak game")
     .parse(argc, argv);
-
+  // clang-format on
   using namespace durak_computer_controlled_opponent;
   database::createDatabaseIfNotExist ();
   soci::session sql (soci::sqlite3, database::databaseName);
@@ -59,13 +59,13 @@ main (int argc, char **argv)
       signals.async_wait ([&] (auto, auto) { ioContext.stop (); });
       auto server = Server{};
       using namespace boost::asio::experimental::awaitable_operators;
-      auto const PORT_USER_TO_GAME_VIA_MATCHMAKING =  boost::numeric_cast<u_int16_t>(std::stoul(args.value ("port-user-to-game-via-matchmaking")));
-      auto const PORT_MATCHMAKING_TO_GAME = boost::numeric_cast<u_int16_t>(std::stoul(args.value ("port-matchmaking-to-game")));
+      auto const PORT_USER_TO_GAME_VIA_MATCHMAKING = boost::numeric_cast<u_int16_t> (std::stoul (args.value ("port-user-to-game-via-matchmaking")));
+      auto const PORT_MATCHMAKING_TO_GAME = boost::numeric_cast<u_int16_t> (std::stoul (args.value ("port-matchmaking-to-game")));
       auto const PORT_GAME_TO_MATCHMAKING = args.value ("port-game-to-matchmaking");
       std::string ADDRESS_MATCHMAKING = args.value ("address-of-matchmaking");
       auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), PORT_USER_TO_GAME_VIA_MATCHMAKING };
       auto matchmakingToGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), PORT_MATCHMAKING_TO_GAME };
-      co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, ADDRESS_MATCHMAKING,PORT_GAME_TO_MATCHMAKING) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+      co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, ADDRESS_MATCHMAKING, PORT_GAME_TO_MATCHMAKING) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
       ioContext.run ();
     }
   catch (std::exception &e)
