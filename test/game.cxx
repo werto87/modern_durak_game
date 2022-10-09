@@ -4,9 +4,10 @@
 #include <durak/card.hxx>
 #include <durak/game.hxx>
 #include <durak/gameOption.hxx>
+#include <durak_computer_controlled_opponent/solve.hxx>
 
 std::tuple<std::vector<std::tuple<uint8_t, durak::Card> >, std::vector<std::tuple<uint8_t, durak::Card> > > calcCompressedCardsForAttackAndDefend (durak::Game const &game);
-
+shared_class::DurakNextMoveSuccess calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping);
 TEST_CASE ("calcCompressedCardsForAttackAndDefend", "[game]")
 {
   SECTION ("calcCompressedCardsForAttackAndDefend 2 v 2 cards")
@@ -18,5 +19,14 @@ TEST_CASE ("calcCompressedCardsForAttackAndDefend", "[game]")
     auto playerTwo = std::get<1> (result);
     REQUIRE (playerOne.size () == 2);
     REQUIRE (playerTwo.size () == 2);
+  }
+}
+
+TEST_CASE ("calcNextMove", "[game]")
+{
+  SECTION ("calcNextMove")
+  {
+    // TODO TEST THIS
+    //    calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping)calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping)calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping);
   }
 }
