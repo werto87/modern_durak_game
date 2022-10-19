@@ -533,7 +533,7 @@ nextActionForRole (std::vector<std::tuple<uint8_t, durak_computer_controlled_opp
             }
         }
     }
-  return {};
+  return std::nullopt;
 }
 
 shared_class::DurakNextMoveSuccess
