@@ -6,7 +6,7 @@
 #include <durak/card.hxx>
 
 BOOST_FUSION_DEFINE_STRUCT ((database), Round, (std::string, gameState) (std::vector<uint8_t>, combination))
-
+//TODO REMOVE THIS FILES THEY ARE NOW IN COMPUTER_CONNTROLLED OPERENT
 namespace database
 {
 std::string const databaseName = std::string{ PROJECT_ROOT } + "/database/combination.db";

@@ -78,6 +78,7 @@ gameStateAsString (std::tuple<std::vector<uint8_t>, std::vector<uint8_t> > const
   return vectorToString (std::get<0> (cards)) + ";" + vectorToString (std::get<1> (cards)) + ";" + std::to_string (magic_enum::enum_integer (trump));
 }
 
+// TODO remove this and use computer controlled opponend version instead
 std::vector<uint8_t>
 moveResultToBinary (std::vector<std::tuple<uint8_t, Result> > const &moveResults)
 {
