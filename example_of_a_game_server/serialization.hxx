@@ -45,7 +45,28 @@ BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), LeaveGameSuccess, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), LeaveGameError, )
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), GameOver, (std::string, gameName) (bool, ratedGame) (std::vector<std::string>, winners) (std::vector<std::string>, losers) (std::vector<std::string>, draws))
 typedef std::vector<std::pair<std::string, long long int> > UserTimeMilliseconds;
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakTimers, (UserTimeMilliseconds, runningTimeUserTimePointMilliseconds) (UserTimeMilliseconds, pausedTimeUserDurationMilliseconds))
+namespace shared_class
+{
+enum struct Move
+{
+  AttackAssistPass,
+  AttackAssistDoneAddingCards,
+  AddCards,
+  Defend,
+  TakeCards,
+  AnswerDefendWantsToTakeCardsYes,
+  AnswerDefendWantsToTakeCardsNo
+};
+
+enum struct TimerType
+{
+  noTimer,
+  resetTimeOnNewRound,
+  addTimeOnNewRound
+};
+}
+
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakTimers, (shared_class::TimerType, timerType) (UserTimeMilliseconds, runningTimeUserTimePointMilliseconds) (UserTimeMilliseconds, pausedTimeUserDurationMilliseconds))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOption, (durak::GameOption, gameOption) (shared_class::DurakTimers, durakTimers)) // TODO-TEMPLATE add game options
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGame, (std::vector<std::string>, players) (shared_class::GameOption, gameOption) (bool, ratedGame))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameError, (std::string, error))
@@ -92,34 +113,9 @@ BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakGameOverDraw, )
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakLeaveGame, )
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakLeaveGameError, (std::string, error))
 
-namespace shared_class
-{
-enum struct Move
-{
-  AttackAssistPass,
-  AttackAssistDoneAddingCards,
-  AddCards,
-  Defend,
-  TakeCards,
-  AnswerDefendWantsToTakeCardsYes,
-  AnswerDefendWantsToTakeCardsNo
-};
-}
+
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAllowedMoves, (std::vector<shared_class::Move>, allowedMoves))
 
-namespace shared_class
-{
-enum struct TimerType
-{
-  noTimer,
-  resetTimeOnNewRound,
-  addTimeOnNewRound
-};
-}
-// TODO there is no support for std::chrono::seconds in confu_json
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOption, (shared_class::TimerType, timerType) (int, timeAtStartInSeconds) (int, timeForEachRoundInSeconds))
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), SetTimerOptionError, (std::string, error))
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), UnhandledEventError, (std::string, unhandledEvent) (std::string, reason))
 
 // MODERN DURAK TYPES //////////////////////////////////////////////////////////////////////////////////////////////
 
