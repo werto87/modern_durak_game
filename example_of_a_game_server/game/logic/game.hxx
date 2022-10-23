@@ -1,6 +1,7 @@
 #ifndef EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 #define EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 
+#include <__filesystem/path.h>
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/optional/optional.hpp>
@@ -23,7 +24,7 @@ class Game
 {
 
 public:
-  Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_, boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_);
+  Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_, boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_, std::filesystem::path const &databasePath);
 
   std::optional<std::string> processEvent (std::string const &event, std::string const &accountName);
 

@@ -22,7 +22,7 @@ template <typename T> concept hasAccountName = requires (T t) { t.accountName; }
 // Debug<SomeType>{};
 
 awaitable<void>
-Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, std::string matchmakingHost, std::string matchmakingPort)
+Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, std::string matchmakingHost, std::string matchmakingPort, std::filesystem::path databasePath)
 {
   auto executor = co_await this_coro::executor;
   tcp_acceptor acceptor (ioContext, userToGameViaMatchmakingEndpoint);
@@ -41,7 +41,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
           using namespace boost::asio::experimental::awaitable_operators;
           tcp::resolver resolv{ ioContext };
           auto resolvedGameToMatchmakingEndpoint = co_await resolv.async_resolve (ip::tcp::v4 (), matchmakingHost, matchmakingPort, use_awaitable);
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint ()] (const std::string &msg) mutable {
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (const std::string &msg) mutable {
             std::vector<std::string> splitMessage{};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -64,7 +64,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           }
                         if (gameToCreate->allUsersConnected ())
                           {
-                            games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint });
+                            games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             gamesToCreate.erase (gameToCreate);
                           }
                       }

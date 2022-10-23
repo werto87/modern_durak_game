@@ -2,7 +2,7 @@
 #include "durak/card.hxx"
 #include "durak/game.hxx"
 #include "durak/gameData.hxx"
-#include "example_of_a_game_server/database.hxx"
+#include "durak_computer_controlled_opponent/database.hxx"
 #include "example_of_a_game_server/serialization.hxx"
 #include "example_of_a_game_server/server/user.hxx"
 #include "example_of_a_game_server/util.hxx"
@@ -140,6 +140,7 @@ struct GameDependencies
   std::string gameName{};
   boost::asio::io_context &ioContext;
   boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint{};
+  std::filesystem::path databasePath{};
 };
 
 auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer; };
@@ -499,43 +500,6 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
 };
 
-std::optional<durak_computer_controlled_opponent::Action>
-nextActionForRole (std::vector<std::tuple<uint8_t, durak_computer_controlled_opponent::Result> > const &nextActions, durak::PlayerRole const &playerRole)
-{
-  if (playerRole == durak::PlayerRole::attack || playerRole == durak::PlayerRole::defend)
-    {
-      if (auto winningAction = ranges::find_if (nextActions,
-                                                [&playerRole] (std::tuple<uint8_t, durak_computer_controlled_opponent::Result> const &actionAsBinaryAndResult) {
-                                                  auto const &[actionAsBinary, result] = actionAsBinaryAndResult;
-                                                  if (playerRole == durak::PlayerRole::attack)
-                                                    {
-                                                      return result == durak_computer_controlled_opponent::Result::AttackWon;
-                                                    }
-                                                  else
-                                                    {
-                                                      return result == durak_computer_controlled_opponent::Result::DefendWon;
-                                                    }
-                                                });
-          winningAction != nextActions.end ())
-        {
-          return { durak_computer_controlled_opponent::Action{ std::get<0> (*winningAction) } };
-        }
-      else
-        {
-          if (auto drawAction = ranges::find_if (nextActions,
-                                                 [] (auto const &actionAsBinaryAndResult) {
-                                                   auto const &[actionAsBinary, result] = actionAsBinaryAndResult;
-                                                   return result == durak_computer_controlled_opponent::Result::Draw;
-                                                 });
-              drawAction != nextActions.end ())
-            {
-              return { durak_computer_controlled_opponent::Action{ std::get<0> (*drawAction) } };
-            }
-        }
-    }
-  return std::nullopt;
-}
-
 shared_class::DurakNextMoveSuccess
 calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping)
 {
@@ -612,6 +576,7 @@ whoHasToMove (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > 
   return (table.size () % 2 == 0) ? durak::PlayerRole::attack : durak::PlayerRole::defend;
 }
 
+// TODO this might be better in durak_computer_controlled_opponent?
 std::tuple<std::vector<std::tuple<uint8_t, durak::Card> >, std::vector<std::tuple<uint8_t, durak::Card> > >
 calcCompressedCardsForAttackAndDefend (durak::Game const &game)
 {
@@ -633,12 +598,13 @@ calcCompressedCardsForAttackAndDefend (durak::Game const &game)
 
 auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
   auto &[event, user] = durakNextMoveUser;
+  // TODO most of this might be better in durak_computer_controlled_opponent?
   auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
   if (whoHasToMove (gameDependencies.game.getTable ()) == playerRole)
     {
       using namespace durak;
       using namespace durak_computer_controlled_opponent;
-      soci::session sql (soci::sqlite3, database::databaseName);
+      soci::session sql (soci::sqlite3, gameDependencies.databasePath);
       auto const [compressedCardsForAttack, compressedCardsForDefend] = calcCompressedCardsForAttackAndDefend (gameDependencies.game);
       auto attackCardsCompressed = std::vector<uint8_t>{};
       compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
@@ -648,7 +614,7 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
       if (someRound.has_value ())
         {
           auto moveResult = binaryToMoveResult (someRound.value ().combination);
-          auto result = nextActions ({ 0 }, moveResult);
+          auto result = nextActionsAndResults ({}, moveResult);
           auto actionForRole = nextActionForRole (result, playerRole);
           auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
           auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
@@ -1071,10 +1037,11 @@ Game::StateMachineWrapperDeleter::operator() (StateMachineWrapper *p)
 
 
 
-Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_,boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_): sm{ new StateMachineWrapper{this,startGame,gameName,std::move(users),ioContext_,gameToMatchmakingEndpoint_} } {
+Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gameName, std::list<User> &&users, boost::asio::io_context &ioContext_,boost::asio::ip::tcp::endpoint const &gameToMatchmakingEndpoint_,std::filesystem::path const& databasePath): sm{ new StateMachineWrapper{this,startGame,gameName,std::move(users),ioContext_,gameToMatchmakingEndpoint_} } {
   auto userNames=std::vector<std::string>{};
   ranges::transform(sm->gameDependencies.users,ranges::back_inserter(userNames),[](User const& user){return user.accountName;});
   sm->gameDependencies.game=durak::Game{std::move(userNames),startGame.gameOption.gameOption};
+sm->gameDependencies.databasePath=databasePath;
   // TODO check if it necessary to send this 2 events. maybe game could be started with out this???
   sm->impl.process_event (initTimer{});
   sm->impl.process_event (start{});

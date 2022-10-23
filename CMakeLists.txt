@@ -63,3 +63,8 @@ add_executable(${TARGET_NAME}
 target_link_libraries(${TARGET_NAME} PUBLIC
         ${TARGET_NAME_LIB}
         )
+
+
+target_compile_definitions(${TARGET_NAME} PUBLIC
+        CURRENT_BINARY_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\"
+        )
