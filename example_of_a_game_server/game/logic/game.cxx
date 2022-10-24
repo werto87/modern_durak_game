@@ -1041,7 +1041,10 @@ Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gam
   auto userNames=std::vector<std::string>{};
   ranges::transform(sm->gameDependencies.users,ranges::back_inserter(userNames),[](User const& user){return user.accountName;});
   sm->gameDependencies.game=durak::Game{std::move(userNames),startGame.gameOption.gameOption};
-sm->gameDependencies.databasePath=databasePath;
+  sm->gameDependencies.timerOption.timerType=startGame.gameOption.timerOption.timerType;
+  sm->gameDependencies.timerOption.timeAtStart= std::chrono::seconds{startGame.gameOption.timerOption.timeAtStartInSeconds};
+  sm->gameDependencies.timerOption.timeForEachRound=std::chrono::seconds{startGame.gameOption.timerOption.timeForEachRoundInSeconds};
+  sm->gameDependencies.databasePath=databasePath;
   // TODO check if it necessary to send this 2 events. maybe game could be started with out this???
   sm->impl.process_event (initTimer{});
   sm->impl.process_event (start{});
