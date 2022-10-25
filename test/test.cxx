@@ -356,7 +356,6 @@ TEST_CASE ("send message to game", "[game]")
           boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
           if (splitMessage.size () == 2)
             {
-              auto const &typeToSearch = splitMessage.at (0);
               auto const &objectAsString = splitMessage.at (1);
               auto gameData = stringToObject<durak::GameData> (objectAsString);
               playerCount = gameData.players.size ();
