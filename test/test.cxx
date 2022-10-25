@@ -347,24 +347,26 @@ TEST_CASE ("send message to game", "[game]")
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds{ 5 });
     ioContext.reset ();
-    auto called = false;
+    auto playerCount = size_t{};
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&called] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
-      if (msg.starts_with ("ConnectToGameSuccess"))
+    auto logic = [&playerCount] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("GameData"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakLeaveGame{}));
-          //          called = true;
-          //          ioContext.stop ();
+          std::vector<std::string> splitMessage{};
+          boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+          if (splitMessage.size () == 2)
+            {
+              auto const &typeToSearch = splitMessage.at (0);
+              auto const &objectAsString = splitMessage.at (1);
+              auto gameData = stringToObject<durak::GameData> (objectAsString);
+              playerCount = gameData.players.size ();
+              ioContext.stop ();
+            }
         }
-      //      if (msg.starts_with ("LeaveGameSuccess"))
-      //        {
-      //          leaveGameSuccessCalledOnUser2 = true;
-      //          ioContext.stop ();
-      //        }
     };
     co_spawn (ioContext, connectWebsocket (logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
     ioContext.run_for (std::chrono::seconds{ 5 });
-    //    REQUIRE (called);
+    REQUIRE (playerCount == 2);
   }
   ioContext.stop ();
   ioContext.reset ();
