@@ -68,7 +68,7 @@ enum struct TimerType
 
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakTimers,  (UserTimeMilliseconds, runningTimeUserTimePointMilliseconds) (UserTimeMilliseconds, pausedTimeUserDurationMilliseconds))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), TimerOption, (shared_class::TimerType, timerType) (uint64_t, timeAtStartInSeconds) (uint64_t, timeForEachRoundInSeconds))
-BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOption, (durak::GameOption, gameOption) (shared_class::TimerOption, timerOption)) // TODO-TEMPLATE add game options
+BOOST_FUSION_DEFINE_STRUCT ((shared_class), GameOption, (durak::GameOption, gameOption) (shared_class::TimerOption, timerOption) (uint64_t, computerControlledPlayerCount)) // TODO-TEMPLATE add game options
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGame, (std::vector<std::string>, players) (shared_class::GameOption, gameOption) (bool, ratedGame))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameError, (std::string, error))
 BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), StartGameSuccess, (std::string, gameName))

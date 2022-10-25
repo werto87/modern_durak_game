@@ -903,7 +903,7 @@ auto const wantsToTakeCards = [] (std::tuple<shared_class::DurakAskDefendWantToT
   return askDefendWantToTakeCardsAnswerEvent.answer;
 };
 
-auto const sendStartGameToUser = [] (GameDependencies &gameDependencies) { ranges::for_each (gameDependencies.users, [] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::StartGame{})); }); };
+auto const sendStartGameToUser = [] (GameDependencies &gameDependencies) { ranges::for_each (gameDependencies.users, [&gameDependencies] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::StartGameSuccess{ gameDependencies.gameName })); }); };
 
 class StateMachineImpl
 {

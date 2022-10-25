@@ -14,7 +14,7 @@ struct GameToCreate
 
   // optional with error message
   std::optional<std::string> tryToAddUser (User &&user);
-  bool allUsersConnected ();
+  bool allUsersConnected () const;
 
   std::string gameName{ boost::uuids::to_string (boost::uuids::random_generator () ()) };
   matchmaking_game::StartGame startGame{};

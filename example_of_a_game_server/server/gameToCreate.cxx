@@ -22,7 +22,7 @@ GameToCreate::tryToAddUser (User &&user)
 }
 
 bool
-GameToCreate::allUsersConnected ()
+GameToCreate::allUsersConnected () const
 {
   return startGame.players.size () == users.size ();
 }

@@ -64,6 +64,15 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           }
                         if (gameToCreate->allUsersConnected ())
                           {
+                            for (size_t i = 0; i < gameToCreate->startGame.gameOption.computerControlledPlayerCount; ++i)
+                              {
+                                gameToCreate->users.push_back ({ boost::uuids::to_string (boost::uuids::random_generator () ()),
+                                                                 [] (auto const &msg) {
+                                                                   std::cout << msg << std::endl;
+                                                                   // TODO replace print msg with logic for computer controlled opponent. Created in the computer controlled opponent library
+                                                                 },
+                                                                 {} });
+                              }
                             games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             gamesToCreate.erase (gameToCreate);
                           }
