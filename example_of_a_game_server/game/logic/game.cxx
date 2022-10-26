@@ -497,7 +497,9 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   // TODO i think this should be auto &[event, user] = leaveGameEventUser; in all places where this construct is used
   auto [event, user] = leaveGameEventUser;
   removeUserFromGame (user.accountName, gameDependencies);
-  ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
+  ranges::for_each (gameDependencies.users, [] (auto const &user_) {
+    if (user_.timer) user_.timer->cancel ();
+  });
 };
 
 shared_class::DurakNextMoveSuccess
