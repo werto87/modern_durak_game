@@ -141,6 +141,7 @@ struct GameDependencies
   boost::asio::io_context &ioContext;
   boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint{};
   std::filesystem::path databasePath{};
+  shared_class::OpponentCards opponentCards{};
 };
 
 auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer; };
@@ -1044,6 +1045,7 @@ Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gam
   ranges::transform(sm->gameDependencies.users,ranges::back_inserter(userNames),[](User const& user){return user.accountName;});
   sm->gameDependencies.game=durak::Game{std::move(userNames),startGame.gameOption.gameOption};
   sm->gameDependencies.timerOption.timerType=startGame.gameOption.timerOption.timerType;
+  sm->gameDependencies.opponentCards=startGame.gameOption.opponentCards;
   sm->gameDependencies.timerOption.timeAtStart= std::chrono::seconds{startGame.gameOption.timerOption.timeAtStartInSeconds};
   sm->gameDependencies.timerOption.timeForEachRound=std::chrono::seconds{startGame.gameOption.timerOption.timeForEachRoundInSeconds};
   sm->gameDependencies.databasePath=databasePath;
