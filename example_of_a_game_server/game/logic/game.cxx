@@ -249,7 +249,6 @@ boost::asio::awaitable<void> inline runTimer (std::shared_ptr<boost::asio::syste
 }
 
 auto const sendTimer = [] (GameDependencies &gameDependencies) {
-  //  TODO something is wrong with the timer and the user if one user is computer controlled
   if (gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer)
     {
       auto durakTimers = shared_class::DurakTimers{};

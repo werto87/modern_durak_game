@@ -91,7 +91,6 @@ BOOST_FUSION_DEFINE_STRUCT ((matchmaking_game), ConnectToGameSuccess, )
 // GENERIC GAME MESSAGES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // MODERN DURAK TYPES
-// TODO this events come from the user and the game but the problem is for example DurakAttack has no name but the state machine uses attack with user name ???
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAttack, (std::vector<durak::Card>, cards))
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAttackSuccess, )
 BOOST_FUSION_DEFINE_STRUCT ((shared_class), DurakAttackError, (std::string, error))
