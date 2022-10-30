@@ -71,7 +71,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                                                                    std::cout << msg << std::endl;
                                                                    // TODO replace print msg with logic for computer controlled opponent. Created in the computer controlled opponent library
                                                                  },
-                                                                 {} });
+                                                                 std::make_shared<boost::asio::system_timer> (executor) });
                               }
                             games.push_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             gamesToCreate.erase (gameToCreate);

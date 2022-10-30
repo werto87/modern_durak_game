@@ -249,6 +249,7 @@ boost::asio::awaitable<void> inline runTimer (std::shared_ptr<boost::asio::syste
 }
 
 auto const sendTimer = [] (GameDependencies &gameDependencies) {
+  //  TODO something is wrong with the timer and the user if one user is computer controlled
   if (gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer)
     {
       auto durakTimers = shared_class::DurakTimers{};
@@ -357,7 +358,7 @@ auto const userReloggedInAskAttackAssist = [] (GameDependencies &gameDependencie
 };
 auto const blockEverythingExceptStartAttack = AllowedMoves{ .defend = std::vector<shared_class::Move>{}, .attack = std::vector<shared_class::Move>{ shared_class::Move::AddCards }, .assist = std::vector<shared_class::Move>{} };
 auto const roundStartSendAllowedMovesAndGameData = [] (GameDependencies &gameDependencies) {
-  sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+  sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users, gameDependencies.opponentCards);
   sendAvailableMoves (gameDependencies.game, gameDependencies.users, blockEverythingExceptStartAttack);
 };
 
@@ -498,9 +499,7 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   // TODO i think this should be auto &[event, user] = leaveGameEventUser; in all places where this construct is used
   auto [event, user] = leaveGameEventUser;
   removeUserFromGame (user.accountName, gameDependencies);
-  ranges::for_each (gameDependencies.users, [] (auto const &user_) {
-    if (user_.timer) user_.timer->cancel ();
-  });
+  ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
 };
 
 shared_class::DurakNextMoveSuccess

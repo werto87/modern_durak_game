@@ -349,7 +349,7 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     auto playerCount = size_t{};
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&playerCount] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto logic = [&playerCount] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> >) {
       if (msg.starts_with ("GameData"))
         {
           std::vector<std::string> splitMessage{};
@@ -366,6 +366,35 @@ TEST_CASE ("send message to game", "[game]")
     co_spawn (ioContext, connectWebsocket (logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
     ioContext.run_for (std::chrono::seconds{ 5 });
     REQUIRE (playerCount == 2);
+  }
+  SECTION ("ComputerControlledOpponent timer")
+  {
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    // clang-format off
+    auto startGame=matchmaking_game::StartGame{};
+    startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};
+    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
+    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
+    startGame.gameOption.computerControlledPlayerCount=1;
+    startGame.gameOption.timerOption.timeAtStartInSeconds=1;
+    startGame.gameOption.timerOption.timerType=shared_class::TimerType::addTimeOnNewRound;
+    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
+    // clang-format on
+    co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
+    ioContext.run_for (std::chrono::seconds{ 5 });
+    ioContext.reset ();
+    auto leaveCalled = false;
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto logic = [&leaveCalled] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg == "LeaveGameSuccess|{}")
+        {
+          leaveCalled = true;
+          ioContext.stop ();
+        }
+    };
+    co_spawn (ioContext, connectWebsocket (logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
+    ioContext.run_for (std::chrono::seconds{ 5 });
+    REQUIRE (leaveCalled);
   }
   ioContext.stop ();
   ioContext.reset ();
