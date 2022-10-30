@@ -790,13 +790,13 @@ auto const tryToAttackAndInformOtherPlayers = [] (GameDependencies &gameDependen
             {
               process_event (pauseTimer{ { assistingPlayer->id } });
             }
-          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users, gameDependencies.opponentCards);
           sendAvailableMoves (gameDependencies.game, gameDependencies.users);
           process_event (sendTimerEv{});
         }
       else
         {
-          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users, gameDependencies.opponentCards);
           auto otherPlayerRole = (playerRole == durak::PlayerRole::attack) ? durak::PlayerRole::assistAttacker : durak::PlayerRole::attack;
           defendsWantsToTakeCardsSendMovesToAttackOrAssist (gameDependencies.game, playerRole, user);
           if (auto otherPlayer = (otherPlayerRole == durak::PlayerRole::attack) ? gameDependencies.game.getAttackingPlayer () : gameDependencies.game.getAssistingPlayer ())
@@ -829,7 +829,7 @@ auto const doAttack = [] (std::tuple<shared_class::DurakAttack, User &> const &d
               process_event (pauseTimer{ { attackingPlayer->id } });
             }
           user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackSuccess{}));
-          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users, gameDependencies.opponentCards);
           sendAvailableMoves (gameDependencies.game, gameDependencies.users);
           process_event (sendTimerEv{});
           gameDependencies.passAttackAndAssist = PassAttackAndAssist{};
@@ -855,7 +855,7 @@ auto const doDefend = [] (GameDependencies &gameDependencies, std::tuple<shared_
       if (gameDependencies.game.playerDefends (defendEvent.cardToBeat, defendEvent.card))
         {
           user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendSuccess{}));
-          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users);
+          sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users, gameDependencies.opponentCards);
           sendAvailableMoves (gameDependencies.game, gameDependencies.users);
           if (gameDependencies.game.countOfNotBeatenCardsOnTable () == 0)
             {

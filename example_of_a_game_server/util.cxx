@@ -76,11 +76,11 @@ sendAvailableMoves (durak::Game const &game, std::list<User> const &users, Allow
 }
 
 void
-sendGameDataToAccountsInGame (durak::Game const &game, std::list<User> const &users)
+sendGameDataToAccountsInGame (durak::Game const &game, std::list<User> const &users, shared_class::OpponentCards opponentCards)
 {
   auto gameData = game.getGameData ();
   ranges::for_each (gameData.players, [] (auto &player) { ranges::sort (player.cards, [] (auto const &card1, auto const &card2) { return card1.value () < card2.value (); }); });
-  ranges::for_each (users, [&gameData] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (filterGameDataByAccountName (gameData, user.accountName))); });
+  ranges::for_each (users, [&gameData, opponentCards] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (opponentCards == shared_class::OpponentCards::showNumberOfOpponentCards ? filterGameDataByAccountName (gameData, user.accountName) : gameData)); });
 }
 
 #ifdef LOG_CO_SPAWN_PRINT_EXCEPTIONS

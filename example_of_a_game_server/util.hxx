@@ -49,7 +49,7 @@ durak::GameData filterGameDataByAccountName (durak::GameData const &gameData, st
 // allowed moves overrides
 void sendAvailableMoves (durak::Game const &game, std::list<User> const &users, AllowedMoves const &removeFromAllowedMoves = {}, AllowedMoves const &addToAllowedMoves = {});
 
-void sendGameDataToAccountsInGame (durak::Game const &game, std::list<User> const &users);
+void sendGameDataToAccountsInGame (durak::Game const &game, std::list<User> const &users, shared_class::OpponentCards opponentCards);
 std::vector<shared_class::Move> calculateAllowedMoves (durak::Game const &game, durak::PlayerRole playerRole);
 size_t averageRating (std::vector<std::string> const &accountNames);
 
