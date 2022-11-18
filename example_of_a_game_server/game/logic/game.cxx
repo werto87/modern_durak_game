@@ -28,6 +28,7 @@
 #include <durak/gameOption.hxx>
 #include <durak_computer_controlled_opponent/compressCard.hxx>
 #include <durak_computer_controlled_opponent/solve.hxx>
+#include <durak_computer_controlled_opponent/util.hxx>
 #include <fmt/format.h>
 #include <iostream>
 #include <magic_enum.hpp>
@@ -356,7 +357,7 @@ auto const userReloggedInAskAttackAssist = [] (GameDependencies &gameDependencie
     }
 };
 auto const blockEverythingExceptStartAttack = AllowedMoves{ .defend = std::vector<shared_class::Move>{}, .attack = std::vector<shared_class::Move>{ shared_class::Move::AddCards }, .assist = std::vector<shared_class::Move>{} };
-auto const roundStartSendAllowedMovesAndGameData = [] (GameDependencies &gameDependencies) {
+auto const roundStart = [] (GameDependencies &gameDependencies) {
   sendGameDataToAccountsInGame (gameDependencies.game, gameDependencies.users, gameDependencies.opponentCards);
   sendAvailableMoves (gameDependencies.game, gameDependencies.users, blockEverythingExceptStartAttack);
 };
@@ -571,64 +572,69 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
     }
 }
 
+std::vector<durak::Card>
+flatTable (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > const &table)
+{
+  auto result = std::vector<durak::Card>{};
+  for (auto const &[cardToBeat, card] : table)
+    {
+      result.push_back (cardToBeat);
+      if (card.has_value ())
+        {
+          result.push_back (card.value ());
+        }
+    }
+  return result;
+}
+
 durak::PlayerRole
 whoHasToMove (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > const &table)
 {
-  return (table.size () % 2 == 0) ? durak::PlayerRole::attack : durak::PlayerRole::defend;
-}
-
-// TODO this might be better in durak_computer_controlled_opponent?
-std::tuple<std::vector<std::tuple<uint8_t, durak::Card> >, std::vector<std::tuple<uint8_t, durak::Card> > >
-calcCompressedCardsForAttackAndDefend (durak::Game const &game)
-{
-  using namespace durak_computer_controlled_opponent;
-  auto cards = game.getAttackingPlayer ()->getCards ();
-  auto defendingCards = game.getDefendingPlayer ()->getCards ();
-  cards.insert (cards.end (), defendingCards.begin (), defendingCards.end ());
-  auto cardsAsIds = cardsToIds (compress (cards));
-  auto attackingCardsAsIds = std::vector<uint8_t>{ cardsAsIds.begin (), cardsAsIds.begin () + cardsAsIds.size () / 2 };
-  auto attackingCardsAsIdsAndAsCards = std::vector<std::tuple<uint8_t, durak::Card> >{};
-  pipes::mux (attackingCardsAsIds, game.getAttackingPlayer ()->getCards ()) >>= pipes::transform ([] (auto const &x, auto const &y) { return std::tuple<uint8_t, durak::Card>{ x, y }; }) >>= pipes::push_back (attackingCardsAsIdsAndAsCards);
-  ranges::sort (attackingCardsAsIdsAndAsCards, [] (auto const &x, auto const &y) { return std::get<0> (x) < std::get<0> (y); });
-  auto defendingCardsAsIds = std::vector<uint8_t>{ cardsAsIds.begin () + cardsAsIds.size () / 2, cardsAsIds.end () };
-  auto defendingCardsAsIdsAndAsCards = std::vector<std::tuple<uint8_t, durak::Card> >{};
-  pipes::mux (defendingCardsAsIds, game.getDefendingPlayer ()->getCards ()) >>= pipes::transform ([] (auto const &x, auto const &y) { return std::tuple<uint8_t, durak::Card>{ x, y }; }) >>= pipes::push_back (defendingCardsAsIdsAndAsCards);
-  ranges::sort (defendingCardsAsIdsAndAsCards, [] (auto const &x, auto const &y) { return std::get<0> (x) < std::get<0> (y); });
-  return { attackingCardsAsIdsAndAsCards, defendingCardsAsIdsAndAsCards };
+  return (flatTable (table).size () % 2 == 0) ? durak::PlayerRole::attack : durak::PlayerRole::defend;
 }
 
 auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
   auto &[event, user] = durakNextMoveUser;
-  // TODO most of this might be better in durak_computer_controlled_opponent?
-  auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
-  if (whoHasToMove (gameDependencies.game.getTable ()) == playerRole)
+  if (durak_computer_controlled_opponent::tableValidForMoveLookUp (gameDependencies.game.getTable ()))
     {
-      using namespace durak;
-      using namespace durak_computer_controlled_opponent;
-      soci::session sql (soci::sqlite3, gameDependencies.databasePath);
-      auto const [compressedCardsForAttack, compressedCardsForDefend] = calcCompressedCardsForAttackAndDefend (gameDependencies.game);
-      auto attackCardsCompressed = std::vector<uint8_t>{};
-      compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
-      auto defendCardsCompressed = std::vector<uint8_t>{};
-      compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
-      auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
-      if (someRound.has_value ())
+      auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
+      if (whoHasToMove (gameDependencies.game.getTable ()) == playerRole)
         {
-          auto moveResult = binaryToMoveResult (someRound.value ().combination);
-          auto result = nextActionsAndResults ({}, moveResult);
-          auto actionForRole = nextActionForRole (result, playerRole);
-          auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
-          auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-          user.sendMsgToUser (objectToStringWithObjectName (calculatedNextMove));
+          using namespace durak;
+          using namespace durak_computer_controlled_opponent;
+          soci::session sql (soci::sqlite3, gameDependencies.databasePath);
+          auto const [compressedCardsForAttack, compressedCardsForDefend] = calcCompressedCardsForAttackAndDefend (gameDependencies.game);
+          auto attackCardsCompressed = std::vector<uint8_t>{};
+          compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+          auto defendCardsCompressed = std::vector<uint8_t>{};
+          compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+          auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
+          if (someRound)
+            {
+              std::vector<durak_computer_controlled_opponent::Action> actions = durak_computer_controlled_opponent::historyEventsToActions (gameDependencies.game.getHistory ());
+              auto actions123 = actions;
+              //              TODO delete the 123 variables they are only here to help debug
+              auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+              auto result123 = result;
+              auto actionForRole = nextActionForRole (result, playerRole);
+              auto actionForRole123 = actionForRole;
+              auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
+              auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+              user.sendMsgToUser (objectToStringWithObjectName (calculatedNextMove));
+            }
+          else
+            {
+              user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a game for the cards." }));
+            }
         }
       else
         {
-          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a game for the cards." }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "player does not have to make a move so wait for the other player." }));
         }
     }
   else
     {
-      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "player does not have to make a move so wait for the other player." }));
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "table not in valid state. Game lookup is only supported for 1 vs. 1 players and if every player only place one card at once." }));
     }
 };
 
@@ -809,6 +815,10 @@ auto const tryToAttackAndInformOtherPlayers = [] (GameDependencies &gameDependen
         }
       gameDependencies.passAttackAndAssist = PassAttackAndAssist{};
     }
+  else
+    {
+      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackError{ "not allowed to play cards" }));
+    }
 };
 
 auto const doAttack = [] (std::tuple<shared_class::DurakAttack, User &> const &durakAttackAndUser, GameDependencies &gameDependencies, boost::sml::back::process<resumeTimer, pauseTimer, sendTimerEv> process_event, bool isChill) {
@@ -928,10 +938,10 @@ public:
         // clang-format off
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 * "init"_s                  + event<start>                                                  
-                            /(sendStartGameToUser,roundStartSendAllowedMovesAndGameData, process (sendTimerEv{}))                                 = state<Chill>   
+                            /(sendStartGameToUser,roundStart, process (sendTimerEv{}))                                 = state<Chill>
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<Chill>              + on_entry<_>                        [isNotFirstRound]               
-                            /(resetPassStateMachineData,process (nextRoundTimer{}),roundStartSendAllowedMovesAndGameData)           
+                            /(resetPassStateMachineData,process (nextRoundTimer{}),roundStart)
 , state<Chill>              + event<askDef>                                                                                                       = state<AskDef>
 , state<Chill>              + event<askAttackAndAssist>                                                                                           = state<AskAttackAndAssist>
 , state<Chill>              + event<AttackPass>                                                     /(setAttackPass,checkData)
@@ -1047,9 +1057,6 @@ Game::Game (matchmaking_game::StartGame const &startGame, std::string const &gam
   sm->gameDependencies.timerOption.timeAtStart= std::chrono::seconds{startGame.gameOption.timerOption.timeAtStartInSeconds};
   sm->gameDependencies.timerOption.timeForEachRound=std::chrono::seconds{startGame.gameOption.timerOption.timeForEachRoundInSeconds};
   sm->gameDependencies.databasePath=databasePath;
-  // TODO check if it necessary to send this 2 events. maybe game could be started with out this???
-  sm->impl.process_event (initTimer{});
-  sm->impl.process_event (start{});
 }
 
 
@@ -1080,7 +1087,10 @@ std::optional<std::string> Game::processEvent (std::string const &event, std::st
   return result;
 }
 
-
+void Game::startGame (){
+  sm->impl.process_event (initTimer{});
+  sm->impl.process_event (start{});
+}
 
 
 std::string const& Game::gameName () const{

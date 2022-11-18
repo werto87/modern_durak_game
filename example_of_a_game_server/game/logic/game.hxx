@@ -28,6 +28,8 @@ public:
 
   std::optional<std::string> processEvent (std::string const &event, std::string const &accountName);
 
+  void startGame ();
+
   std::string const &gameName () const;
 
   bool isUserInGame (std::string const &userName) const;
