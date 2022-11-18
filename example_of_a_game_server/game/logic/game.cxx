@@ -612,12 +612,8 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
           if (someRound)
             {
               std::vector<durak_computer_controlled_opponent::Action> actions = durak_computer_controlled_opponent::historyEventsToActions (gameDependencies.game.getHistory ());
-              auto actions123 = actions;
-              //              TODO delete the 123 variables they are only here to help debug
               auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
-              auto result123 = result;
               auto actionForRole = nextActionForRole (result, playerRole);
-              auto actionForRole123 = actionForRole;
               auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
               auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
               user.sendMsgToUser (objectToStringWithObjectName (calculatedNextMove));
