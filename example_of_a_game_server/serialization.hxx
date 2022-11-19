@@ -166,7 +166,8 @@ DurakLeaveGame,
 DurakLeaveGameError,
 DurakTimers,
 DurakAllowedMoves,
-DurakNextMove
+DurakNextMove,
+DurakNextMoveSuccess
   >  const gameTypes{};
 }
 // clang-format on

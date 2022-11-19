@@ -385,7 +385,7 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     auto leaveCalled = false;
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&leaveCalled] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto logic = [&leaveCalled] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> >) {
       if (msg == "LeaveGameSuccess|{}")
         {
           leaveCalled = true;
@@ -416,17 +416,32 @@ TEST_CASE ("send message to game", "[game]")
     gameLookup.insert ({ { 1, 1 }, solveDurak (36, 1, 1, gameLookup) });
     gameLookup.insert ({ { 2, 2 }, solveDurak (36, 2, 2, gameLookup) });
     durak_computer_controlled_opponent::database::insertGameLookUp (DEFAULT_DATABASE_PATH, gameLookup);
-    auto playerCount = size_t{};
+    auto cardBeaten = false;
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&playerCount] (boost::asio::io_context &ioContext, std::string const &msg, const std::shared_ptr<MyWebsocket<Websocket> > &myWebsocket) {
+    auto logic = [&cardBeaten] (boost::asio::io_context &ioContext, std::string const &msg, const std::shared_ptr<MyWebsocket<Websocket> > &myWebsocket) {
       if (msg.starts_with ("GameData"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttack{ { { 3, durak::Type::clubs } } }));
+          std::vector<std::string> splitMessage{};
+          boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+          if (splitMessage.size () == 2)
+            {
+              auto const &objectAsString = splitMessage.at (1);
+              auto gameData = stringToObject<durak::GameData> (objectAsString);
+              if (not gameData.table.empty () and gameData.table.at (0).second.has_value ())
+                {
+                  cardBeaten = true;
+                  ioContext.stop ();
+                }
+              else
+                {
+                  myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttack{ { { 3, durak::Type::clubs } } }));
+                }
+            }
         }
     };
     co_spawn (ioContext, connectWebsocket (logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
-    ioContext.run_for (std::chrono::seconds{ 5 });
-    REQUIRE (playerCount == 2);
+    ioContext.run_for (std::chrono::seconds{ 12345 });
+    REQUIRE (cardBeaten);
   }
   ioContext.stop ();
   ioContext.reset ();

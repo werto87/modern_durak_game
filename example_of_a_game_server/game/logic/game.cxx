@@ -1110,3 +1110,6 @@ boost::optional<User &> Game::user (std::string const &userName) {
   return userItr!=sm->gameDependencies.users.end()?*userItr:boost::optional<User &>{};
 }
 
+durak::Game const& Game::durakGame ()const{
+return  sm->gameDependencies.game;
+}

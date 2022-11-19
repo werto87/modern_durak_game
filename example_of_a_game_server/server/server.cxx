@@ -21,6 +21,56 @@ template <typename T> concept hasAccountName = requires (T t) { t.accountName; }
 // template <typename> struct Debug;
 // Debug<SomeType>{};
 
+void
+playSuggestedMove (shared_class::DurakNextMoveSuccess const &durakNextMoveSuccess, Game &game, std::string const &playerName)
+{
+  switch (durakNextMoveSuccess.nextMove)
+    {
+    case shared_class::Move::AttackAssistPass:
+    case shared_class::Move::AttackAssistDoneAddingCards:
+      {
+        if (game.durakGame ().getRoleForName (playerName) == durak::PlayerRole::attack)
+          {
+            game.processEvent (objectToStringWithObjectName (shared_class::DurakAttackPass{}), playerName);
+          }
+        else if (game.durakGame ().getRoleForName (playerName) == durak::PlayerRole::assistAttacker)
+          {
+            game.processEvent (objectToStringWithObjectName (shared_class::DurakAssistPass{}), playerName);
+          }
+        else
+          {
+            throw std::logic_error{ "Next move type pass but player is not attack or assist" };
+          }
+        break;
+      }
+    case shared_class::Move::AddCards:
+      {
+        game.processEvent (objectToStringWithObjectName (shared_class::DurakAttack{ std::vector<durak::Card>{ *durakNextMoveSuccess.card } }), playerName);
+        break;
+      }
+    case shared_class::Move::Defend:
+      {
+        game.processEvent (objectToStringWithObjectName (shared_class::DurakDefend{ { game.durakGame ().getTable ().back ().first }, *durakNextMoveSuccess.card }), playerName);
+        break;
+      }
+    case shared_class::Move::TakeCards:
+      {
+        game.processEvent (objectToStringWithObjectName (shared_class::DurakDefendPass{}), playerName);
+        break;
+      }
+    case shared_class::Move::AnswerDefendWantsToTakeCardsYes:
+      {
+        game.processEvent (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswer{ true }), playerName);
+        break;
+      }
+    case shared_class::Move::AnswerDefendWantsToTakeCardsNo:
+      {
+        game.processEvent (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswer{ false }), playerName);
+        break;
+      }
+    }
+}
+
 awaitable<void>
 Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, std::string matchmakingHost, std::string matchmakingPort, std::filesystem::path databasePath)
 {
@@ -85,11 +135,10 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                                                                        }
                                                                      else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveSuccess> ())
                                                                        {
-                                                                         std::cout << "DurakNextMoveSuccess" << std::endl;
-                                                                       }
-                                                                     else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveError> ())
-                                                                       {
-                                                                         std::cout << "DurakNextMoveError: " <<stringToObject<shared_class::DurakNextMoveError>(objectAsString).error  << std::endl;
+                                                                         if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+                                                                           {
+                                                                             playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
+                                                                           }
                                                                        }
                                                                    }
                                                                },

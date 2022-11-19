@@ -6,6 +6,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/optional/optional.hpp>
 #include <deque>
+#include <durak/game.hxx>
+#include <durak/gameData.hxx>
 #include <list>
 #include <memory>
 #include <optional>
@@ -38,6 +40,8 @@ public:
 
   size_t usersInGame () const;
   boost::optional<User &> user (std::string const &userName);
+
+  durak::Game const &durakGame () const;
 
 private:
   struct StateMachineWrapper;
