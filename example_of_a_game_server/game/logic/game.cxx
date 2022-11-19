@@ -540,7 +540,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
         {
           if (ranges::find (moves, shared_class::Move::Defend) != moves.end ())
             {
-              if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != attackIdCardMapping.end ())
+              if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != defendIdCardMapping.end ())
                 {
                   return { shared_class::Move::Defend, std::get<1> (*idCard) };
                 }
@@ -603,7 +603,7 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
           using namespace durak;
           using namespace durak_computer_controlled_opponent;
           soci::session sql (soci::sqlite3, gameDependencies.databasePath);
-          auto const [compressedCardsForAttack, compressedCardsForDefend] = calcCompressedCardsForAttackAndDefend (gameDependencies.game);
+          auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (gameDependencies.game);
           auto attackCardsCompressed = std::vector<uint8_t>{};
           compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
           auto defendCardsCompressed = std::vector<uint8_t>{};
@@ -611,7 +611,7 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
           auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
           if (someRound)
             {
-              std::vector<durak_computer_controlled_opponent::Action> actions = durak_computer_controlled_opponent::historyEventsToActions (gameDependencies.game.getHistory ());
+              auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
               auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
               auto actionForRole = nextActionForRole (result, playerRole);
               auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
