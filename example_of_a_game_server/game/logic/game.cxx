@@ -892,14 +892,6 @@ auto const attackErrorUserHasWrongRole = [] (std::tuple<shared_class::DurakAttac
   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAttackError{ "Wrong role error. To attack you need to have the role attack or assist. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
 };
 
-template <typename> struct is_tuple : std::false_type
-{
-};
-
-template <typename... T> struct is_tuple<std::tuple<T...> > : std::true_type
-{
-};
-
 auto const needsToBeDefendingPlayerError = [] (std::tuple<shared_class::DurakAskDefendWantToTakeCardsAnswer, User &> const &askDefendWantToTakeCardsAnswerEventAndUser, GameDependencies &gameDependencies) {
   auto [askDefendWantToTakeCardsAnswerEvent, user] = askDefendWantToTakeCardsAnswerEventAndUser;
   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswerError{ "Wrong role error. To take or discard cards you need to have the role defend. Your role is: " + std::string{ magic_enum::enum_name (gameDependencies.game.getRoleForName (user.accountName)) } }));
