@@ -308,15 +308,6 @@ auto const nextRoundTimerHandler = [] (GameDependencies &gameDependencies, boost
     }
 };
 
-inline void
-sendAllowedMovesForUserWithName (durak::Game &game, std::list<User> &users, std::string const &userName)
-{
-  if (auto user = ranges::find_if (users, [&userName] (auto const &user) { return user.accountName == userName; }); user != users.end ())
-    {
-      user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves{ calculateAllowedMoves (game, game.getRoleForName (userName)) }));
-    }
-}
-
 auto const userReloggedInChillState = [] (GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
   if (auto user = ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &user) { return user.accountName == userName; }); user != gameDependencies.users.end ())
     {
@@ -522,7 +513,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                 }
               else
                 {
-                  return { std::nullopt };
+                  return std::nullopt;
                 }
             }
           else if (ranges::find (moves, shared_class::Move::AttackAssistPass) != moves.end ())
@@ -531,7 +522,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
             }
           else
             {
-              return { std::nullopt };
+              return std::nullopt;
             }
         }
       else if (playerRole == durak::PlayerRole::defend)
@@ -544,7 +535,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                 }
               else
                 {
-                  return { std::nullopt };
+                  return std::nullopt;
                 }
             }
           else if (ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
@@ -553,17 +544,17 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
             }
           else
             {
-              return { std::nullopt };
+              return std::nullopt;
             }
         }
       else
         {
-          return { std::nullopt };
+          return std::nullopt;
         }
     }
   else
     {
-      return { std::nullopt };
+      return std::nullopt;
     }
 }
 
