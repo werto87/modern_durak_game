@@ -502,7 +502,7 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
 };
 
-shared_class::DurakNextMoveSuccess
+std::optional<shared_class::DurakNextMoveSuccess>
 calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping)
 {
   if (action.has_value ())
@@ -518,22 +518,20 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                                                  });
                   idCard != attackIdCardMapping.end ())
                 {
-                  return { shared_class::Move::AddCards, std::get<1> (*idCard) };
+                  return shared_class::DurakNextMoveSuccess{ shared_class::Move::AddCards, std::get<1> (*idCard) };
                 }
               else
                 {
-                  throw std::logic_error{ "attack play card but card could not be found in id card mapping" };
-                  return {};
+                  return { std::nullopt };
                 }
             }
           else if (ranges::find (moves, shared_class::Move::AttackAssistPass) != moves.end ())
             {
-              return { shared_class::Move::AttackAssistPass, {} };
+              return shared_class::DurakNextMoveSuccess{ shared_class::Move::AttackAssistPass, {} };
             }
           else
             {
-              throw std::logic_error{ "attack move should be add card or pass" };
-              return {};
+              return { std::nullopt };
             }
         }
       else if (playerRole == durak::PlayerRole::defend)
@@ -542,33 +540,30 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
             {
               if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != defendIdCardMapping.end ())
                 {
-                  return { shared_class::Move::Defend, std::get<1> (*idCard) };
+                  return shared_class::DurakNextMoveSuccess{ shared_class::Move::Defend, std::get<1> (*idCard) };
                 }
               else
                 {
-                  throw std::logic_error{ "defend play card but card could not be found in id card mapping" };
-                  return {};
+                  return { std::nullopt };
                 }
             }
           else if (ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
             {
-              return { shared_class::Move::TakeCards, {} };
+              return shared_class::DurakNextMoveSuccess{ shared_class::Move::TakeCards, {} };
             }
           else
             {
-              throw std::logic_error{ "defend move should be take or beat cards" };
-              return {};
+              return { std::nullopt };
             }
         }
       else
         {
-          throw std::logic_error{ "role should be attack or defend" };
-          return {};
+          return { std::nullopt };
         }
     }
   else
     {
-      return {};
+      return { std::nullopt };
     }
 }
 
@@ -587,45 +582,37 @@ flatTable (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > c
   return result;
 }
 
-durak::PlayerRole
-whoHasToMove (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > const &table)
-{
-  return (flatTable (table).size () % 2 == 0) ? durak::PlayerRole::attack : durak::PlayerRole::defend;
-}
-
 auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
   auto &[event, user] = durakNextMoveUser;
   if (durak_computer_controlled_opponent::tableValidForMoveLookUp (gameDependencies.game.getTable ()))
     {
       auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
-      if (whoHasToMove (gameDependencies.game.getTable ()) == playerRole)
+      using namespace durak;
+      using namespace durak_computer_controlled_opponent;
+      soci::session sql (soci::sqlite3, gameDependencies.databasePath);
+      auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (gameDependencies.game);
+      auto attackCardsCompressed = std::vector<uint8_t>{};
+      compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+      auto defendCardsCompressed = std::vector<uint8_t>{};
+      compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+      auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
+      if (someRound)
         {
-          using namespace durak;
-          using namespace durak_computer_controlled_opponent;
-          soci::session sql (soci::sqlite3, gameDependencies.databasePath);
-          auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (gameDependencies.game);
-          auto attackCardsCompressed = std::vector<uint8_t>{};
-          compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
-          auto defendCardsCompressed = std::vector<uint8_t>{};
-          compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
-          auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
-          if (someRound)
-            {
-              auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
-              auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
-              auto actionForRole = nextActionForRole (result, playerRole);
-              auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
-              auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-              user.sendMsgToUser (objectToStringWithObjectName (calculatedNextMove));
+          auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
+          auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+          auto actionForRole = nextActionForRole (result, playerRole);
+          auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
+          auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+              user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
             }
           else
             {
-              user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a game for the cards." }));
+              user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a move to play. Are you sure you have to make a play?" }));
             }
         }
       else
         {
-          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "player does not have to make a move so wait for the other player." }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a game for the cards." }));
         }
     }
   else
