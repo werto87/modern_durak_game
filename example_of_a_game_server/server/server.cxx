@@ -119,6 +119,9 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                             ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &executor] (auto const &id) {
                               gameToCreate->users.push_back ({ id,
                                                                [id, gameName, &games = games] (auto const &msg) {
+#ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
+                                                                 std::cout << "msg to computer controlled opponent: " << msg << std::endl;
+#endif
                                                                  std::vector<std::string> splitMessage{};
                                                                  boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
                                                                  auto result = std::optional<std::string>{};
