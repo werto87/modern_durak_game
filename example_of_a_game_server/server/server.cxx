@@ -116,46 +116,47 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           {
                             auto computerControlledPlayerNames = std::vector<std::string> (gameToCreate->startGame.gameOption.computerControlledPlayerCount);
                             ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
-                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &executor] (auto const &id) {
+                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &executor, &ioContext] (auto const &id) {
                               gameToCreate->users.push_back ({ id,
-                                                               [id, gameName, &games = games] (auto const &msg) {
+                                                               [id, gameName, &games = games, &ioContext] (auto const &msg) {
 #ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
                                                                  std::cout << "msg to computer controlled opponent: " << msg << std::endl;
 #endif
-                                                                 // TODO try to make computer controlled opponent connect via websocket
-                                                                 std::vector<std::string> splitMessage{};
-                                                                 boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
-                                                                 if (splitMessage.size () == 2)
-                                                                   {
-                                                                     auto const &typeToSearch = splitMessage.at (0);
-                                                                     auto const &objectAsString = splitMessage.at (1);
-                                                                     if (typeToSearch == confu_json::type_name<durak::GameData> ())
-                                                                       {
-                                                                         if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
-                                                                           {
-                                                                             gameWithPlayer->processEvent (objectToStringWithObjectName (shared_class::DurakNextMove{}), id);
-                                                                           }
-                                                                       }
-                                                                     else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveSuccess> ())
-                                                                       {
-                                                                         if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
-                                                                           {
-                                                                             playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
-                                                                           }
-                                                                       }
-                                                                     else if (typeToSearch == confu_json::type_name<shared_class::DurakAskDefendWantToTakeCards> ())
-                                                                       {
-                                                                         if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
-                                                                           {
-                                                                             auto nextSuggestedMove = shared_class::DurakNextMoveSuccess{};
-                                                                             // TODO right now defend discards cards all the time when asked. There could be a constellation where this is not a good idea
-                                                                             // TODO Find a game where this is the case
-                                                                             // TODO ignoring blunder ofcourse
-                                                                             nextSuggestedMove.nextMove = shared_class::Move::AnswerDefendWantsToTakeCardsNo;
-                                                                             playSuggestedMove (nextSuggestedMove, *gameWithPlayer, id);
-                                                                           }
-                                                                       }
-                                                                   }
+                                                                 boost::asio::post (ioContext, [&, msg] () {
+                                                                   std::vector<std::string> splitMessage{};
+                                                                   boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+                                                                   if (splitMessage.size () == 2)
+                                                                     {
+                                                                       auto const &typeToSearch = splitMessage.at (0);
+                                                                       auto const &objectAsString = splitMessage.at (1);
+                                                                       if (typeToSearch == confu_json::type_name<durak::GameData> ())
+                                                                         {
+                                                                           if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+                                                                             {
+                                                                               gameWithPlayer->processEvent (objectToStringWithObjectName (shared_class::DurakNextMove{}), id);
+                                                                             }
+                                                                         }
+                                                                       else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveSuccess> ())
+                                                                         {
+                                                                           if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+                                                                             {
+                                                                               playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
+                                                                             }
+                                                                         }
+                                                                       else if (typeToSearch == confu_json::type_name<shared_class::DurakAskDefendWantToTakeCards> ())
+                                                                         {
+                                                                           if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+                                                                             {
+                                                                               auto nextSuggestedMove = shared_class::DurakNextMoveSuccess{};
+                                                                               // TODO right now defend discards cards all the time when asked. There could be a constellation where this is not a good idea
+                                                                               // TODO Find a game where this is the case
+                                                                               // TODO ignoring blunder ofcourse
+                                                                               nextSuggestedMove.nextMove = shared_class::Move::AnswerDefendWantsToTakeCardsNo;
+                                                                               playSuggestedMove (nextSuggestedMove, *gameWithPlayer, id);
+                                                                             }
+                                                                         }
+                                                                     }
+                                                                 });
                                                                },
                                                                std::make_shared<boost::asio::system_timer> (executor) });
                             });
