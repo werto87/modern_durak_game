@@ -125,7 +125,6 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                                                                  // TODO try to make computer controlled opponent connect via websocket
                                                                  std::vector<std::string> splitMessage{};
                                                                  boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
-                                                                 auto result = std::optional<std::string>{};
                                                                  if (splitMessage.size () == 2)
                                                                    {
                                                                      auto const &typeToSearch = splitMessage.at (0);

@@ -582,6 +582,19 @@ flatTable (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > c
   return result;
 }
 
+durak::PlayerRole
+whoHasToMove (std::vector<std::pair<durak::Card, boost::optional<durak::Card> > > const &table)
+{
+  if (flatTable (table).size () % 2 == 0)
+    {
+      return durak::PlayerRole::attack;
+    }
+  else
+    {
+      return durak::PlayerRole::defend;
+    }
+}
+
 auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
   auto &[event, user] = durakNextMoveUser;
   if (durak_computer_controlled_opponent::tableValidForMoveLookUp (gameDependencies.game.getTable ()))
@@ -603,12 +616,7 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
           auto actionForRole = nextActionForRole (result, playerRole);
           auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
           auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-              user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
-            }
-          else
-            {
-              user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a move to play. Are you sure you have to make a play?" }));
-            }
+          user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
         }
       else
         {
