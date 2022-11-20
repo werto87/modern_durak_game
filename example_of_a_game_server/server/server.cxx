@@ -122,6 +122,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
 #ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
                                                                  std::cout << "msg to computer controlled opponent: " << msg << std::endl;
 #endif
+                                                                 // TODO try to make computer controlled opponent connect via websocket
                                                                  std::vector<std::string> splitMessage{};
                                                                  boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
                                                                  auto result = std::optional<std::string>{};
