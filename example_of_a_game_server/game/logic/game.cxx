@@ -605,7 +605,9 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
           auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
           auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
           auto actionForRole = nextActionForRole (result, playerRole);
+          // TODO This does not take the game state in account for example when attack passes it will say only move posible take cards
           auto allowedMoves = calculateAllowedMoves (gameDependencies.game, playerRole);
+          // TODO if calculated next move is empty do not look in lookup
           auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
           user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
         }
