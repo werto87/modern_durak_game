@@ -18,8 +18,6 @@
 #include <sstream>
 #include <stdexcept>
 
-auto const DEFAULT_DATABASE_PATH = std::string{ CURRENT_BINARY_DIR } + "/test_database/combination.db";
-
 boost::asio::awaitable<void>
 connectWebsocket (auto handleMsgFromGame, boost::asio::io_context &ioContext, boost::asio::ip::tcp::endpoint const &endpoint, std::vector<std::string> sendMessageBeforeStartRead = {}, std::optional<std::string> connectionName = {})
 {
@@ -308,12 +306,6 @@ TEST_CASE ("send message to game", "[game]")
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds{ 5 });
     ioContext.reset ();
-    durak_computer_controlled_opponent::database::deleteDatabaseAndCreateNewDatabase (DEFAULT_DATABASE_PATH);
-    durak_computer_controlled_opponent::database::createTables (DEFAULT_DATABASE_PATH);
-    auto gameLookup = std::map<std::tuple<uint8_t, uint8_t>, std::array<std::map<std::tuple<std::vector<uint8_t>, std::vector<uint8_t> >, std::vector<std::tuple<uint8_t, durak_computer_controlled_opponent::Result> > >, 4> >{};
-    gameLookup.insert ({ { 1, 1 }, solveDurak (36, 1, 1, gameLookup) });
-    gameLookup.insert ({ { 2, 2 }, solveDurak (36, 2, 2, gameLookup) });
-    durak_computer_controlled_opponent::database::insertGameLookUp (DEFAULT_DATABASE_PATH, gameLookup);
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto unhandledEventError = false;
     auto someMsg = [&unhandledEventError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
@@ -410,12 +402,6 @@ TEST_CASE ("send message to game", "[game]")
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds{ 5 });
     ioContext.reset ();
-    durak_computer_controlled_opponent::database::deleteDatabaseAndCreateNewDatabase (DEFAULT_DATABASE_PATH);
-    durak_computer_controlled_opponent::database::createTables (DEFAULT_DATABASE_PATH);
-    auto gameLookup = std::map<std::tuple<uint8_t, uint8_t>, std::array<std::map<std::tuple<std::vector<uint8_t>, std::vector<uint8_t> >, std::vector<std::tuple<uint8_t, durak_computer_controlled_opponent::Result> > >, 4> >{};
-    gameLookup.insert ({ { 1, 1 }, solveDurak (36, 1, 1, gameLookup) });
-    gameLookup.insert ({ { 2, 2 }, solveDurak (36, 2, 2, gameLookup) });
-    durak_computer_controlled_opponent::database::insertGameLookUp (DEFAULT_DATABASE_PATH, gameLookup);
     auto cardBeaten = false;
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto logic = [&cardBeaten] (boost::asio::io_context &ioContext, std::string const &msg, const std::shared_ptr<MyWebsocket<Websocket> > &myWebsocket) {
