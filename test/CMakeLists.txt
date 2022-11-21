@@ -19,6 +19,12 @@ target_compile_definitions(${TEST_TARGET_NAME} PUBLIC
         CURRENT_BINARY_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\"
         )
 
+add_custom_command(
+        TARGET ${TEST_TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/database/combination.db
+        ${CMAKE_CURRENT_BINARY_DIR}/test_database/combination.db
+)
 add_test(NAME ${TEST_TARGET_NAME}
         COMMAND ${TEST_TARGET_NAME} -r junit
         )
