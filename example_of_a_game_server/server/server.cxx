@@ -129,7 +129,10 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                                                                      {
                                                                        auto const &typeToSearch = splitMessage.at (0);
                                                                        auto const &objectAsString = splitMessage.at (1);
-                                                                       if (typeToSearch == confu_json::type_name<durak::GameData> ())
+                                                                       // TODO type to search only if move avaible is send
+                                                                       // TODO maybe remove rest of the type checks beside move avaible => send next move
+                                                                       // TODO and next move success => play that move
+                                                                       if (typeToSearch == confu_json::type_name<shared_class::DurakAllowedMoves> () and not stringToObject<shared_class::DurakAllowedMoves> (objectAsString).allowedMoves.empty ())
                                                                          {
                                                                            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
                                                                              {
@@ -141,18 +144,6 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                                                                            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
                                                                              {
                                                                                playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
-                                                                             }
-                                                                         }
-                                                                       else if (typeToSearch == confu_json::type_name<shared_class::DurakAskDefendWantToTakeCards> ())
-                                                                         {
-                                                                           if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
-                                                                             {
-                                                                               auto nextSuggestedMove = shared_class::DurakNextMoveSuccess{};
-                                                                               // TODO right now defend discards cards all the time when asked. There could be a constellation where this is not a good idea
-                                                                               // TODO Find a game where this is the case
-                                                                               // TODO ignoring blunder ofcourse
-                                                                               nextSuggestedMove.nextMove = shared_class::Move::AnswerDefendWantsToTakeCardsNo;
-                                                                               playSuggestedMove (nextSuggestedMove, *gameWithPlayer, id);
                                                                              }
                                                                          }
                                                                      }
