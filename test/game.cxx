@@ -227,7 +227,6 @@ TEST_CASE ("calcNextMove first card, defended, attack pass", "[game]")
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
         auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        //    TODO should be true. move should be AnswerDefendWantsToTakeCardsYes or AnswerDefendWantsToTakeCardsNo
         REQUIRE (calculatedNextMove.has_value ());
       }
   }
@@ -270,7 +269,6 @@ TEST_CASE ("calcNextMove first card, defended has to take cards", "[game]")
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
         auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        //    TODO should be true. TAKE CARDS
         REQUIRE (calculatedNextMove.has_value ());
       }
   }
