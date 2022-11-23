@@ -426,7 +426,7 @@ TEST_CASE ("send message to game", "[game]")
         }
     };
     co_spawn (ioContext, connectWebsocket (logic, ioContext, userToGameViaMatchmaking, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}},"user2"), printException);
-    ioContext.run_for (std::chrono::seconds{ 12345 });
+    ioContext.run_for (std::chrono::seconds{ 5 });
     REQUIRE (cardBeaten);
   }
   ioContext.stop ();
