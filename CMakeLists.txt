@@ -45,13 +45,12 @@ target_compile_definitions(${TARGET_NAME_LIB} PUBLIC
         _LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS
         LOG_CO_SPAWN_PRINT_EXCEPTIONS
         LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
-        #        LOG_FOR_STATE_MACHINE
+        #                LOG_FOR_STATE_MACHINE
         LOG_MY_WEBSOCKET
         PROJECT_ROOT=\"${CMAKE_SOURCE_DIR}\"
 
         # BOOST_ASIO_ENABLE_HANDLER_TRACKING
         )
-
 # create executable
 enable_testing()
 add_subdirectory(test)

@@ -582,14 +582,15 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
 };
 
 bool
-hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist)
+hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, auto const &currentState)
 {
+  using CurrentStateType = std::decay_t<decltype (currentState)>;
   using namespace durak;
   switch (playerRole)
     {
     case PlayerRole::attack:
       {
-        if (game.getTableAsVector ().size () % 2 == 0 and passAttackAndAssist.attack == false)
+        if (passAttackAndAssist.attack == false and (game.getTableAsVector ().size () % 2 == 0 or std::same_as<CurrentStateType, AskAttackAndAssist>))
           {
             return true;
           }
@@ -600,7 +601,8 @@ hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndA
       }
     case PlayerRole::assistAttacker:
       {
-        if (game.getTableAsVector ().size () % 2 == 0 and game.getAttackStarted () and passAttackAndAssist.assist == false)
+
+        if (game.getAttackStarted () and passAttackAndAssist.assist == false and (game.getTableAsVector ().size () % 2 == 0 or std::same_as<CurrentStateType, AskAttackAndAssist>))
           {
             return true;
           }
@@ -611,7 +613,7 @@ hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndA
       }
     case PlayerRole::defend:
       {
-        if (hasToMove (game, durak::PlayerRole::attack, passAttackAndAssist) or hasToMove (game, durak::PlayerRole::assistAttacker, passAttackAndAssist))
+        if (hasToMove (game, durak::PlayerRole::attack, passAttackAndAssist, currentState) or hasToMove (game, durak::PlayerRole::assistAttacker, passAttackAndAssist, currentState))
           {
             return false;
           }
@@ -628,8 +630,9 @@ hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndA
 }
 
 std::optional<shared_class::DurakNextMoveSuccess>
-calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping)
+calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, auto const &currentState)
 {
+  using CurrentStateType = std::decay_t<decltype (currentState)>;
   if (playerRole == durak::PlayerRole::attack)
     {
       if (action.has_value ())
@@ -645,9 +648,9 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                   return std::nullopt;
                 }
             }
-          else if (ranges::find (moves, shared_class::Move::AttackAssistPass) != moves.end ())
+          else if (std::same_as<CurrentStateType, AskAttackAndAssist>)
             {
-              return shared_class::DurakNextMoveSuccess{ shared_class::Move::AttackAssistPass, {} };
+              return shared_class::DurakNextMoveSuccess{ shared_class::Move::AttackAssistDoneAddingCards, {} };
             }
           else
             {
@@ -668,7 +671,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
     }
   else if (playerRole == durak::PlayerRole::defend)
     {
-      if (ranges::find (moves, shared_class::Move::Defend) != moves.end ())
+      if (action and ranges::find (moves, shared_class::Move::Defend) != moves.end ())
         {
           if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != defendIdCardMapping.end ())
             {
@@ -702,12 +705,14 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
     }
 }
 
-auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) {
+void
+nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser, auto const &currentState)
+{
   auto &[event, user] = durakNextMoveUser;
   if (durak_computer_controlled_opponent::tableValidForMoveLookUp (gameDependencies.game.getTable ()))
     {
       auto playerRole = gameDependencies.game.getRoleForName (user.accountName);
-      if (hasToMove (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist))
+      if (hasToMove (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist, currentState))
         {
           using namespace durak;
           using namespace durak_computer_controlled_opponent;
@@ -717,14 +722,14 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
           compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
           auto defendCardsCompressed = std::vector<uint8_t>{};
           compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
-          auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
+          auto const &someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
           if (someRound)
             {
-              auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
-              auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
-              auto actionForRole = nextActionForRole (result, playerRole);
-              auto allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
-              auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+              auto const &actions = historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
+              auto const &result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+              auto const &actionForRole = nextActionForRole (result, playerRole);
+              auto const &allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
+              auto const &calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, currentState);
               if (calculatedNextMove)
                 {
                   user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
@@ -732,6 +737,31 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
               else
                 {
                   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a move. Are you sure you have to Move?" }));
+                }
+            }
+          else if (attackCardsCompressed.size () == 1 and defendCardsCompressed.size () > 1)
+            {
+              if (playerRole == durak::PlayerRole::defend)
+                {
+                  auto nextMoveSuccess = shared_class::DurakNextMoveSuccess{};
+                  nextMoveSuccess.nextMove = shared_class::Move::TakeCards;
+                  user.sendMsgToUser (objectToStringWithObjectName (nextMoveSuccess));
+                }
+              else
+                {
+                  if (gameDependencies.game.getAttackStarted ())
+                    {
+                      auto nextMoveSuccess = shared_class::DurakNextMoveSuccess{};
+                      nextMoveSuccess.nextMove = shared_class::Move::AttackAssistPass;
+                      user.sendMsgToUser (objectToStringWithObjectName (nextMoveSuccess));
+                    }
+                  else
+                    {
+                      auto nextMoveSuccess = shared_class::DurakNextMoveSuccess{};
+                      nextMoveSuccess.nextMove = shared_class::Move::AddCards;
+                      nextMoveSuccess.card = gameDependencies.game.getAttackingPlayer ()->getCards ().front ();
+                      user.sendMsgToUser (objectToStringWithObjectName (nextMoveSuccess));
+                    }
                 }
             }
           else
@@ -749,6 +779,10 @@ auto const nextMove = [] (GameDependencies &gameDependencies, std::tuple<shared_
       user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "table not in valid state. Game lookup is only supported for 1 vs. 1 players and if every player only place one card at once." }));
     }
 };
+
+auto const nextMoveChill = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) { nextMove (gameDependencies, durakNextMoveUser, Chill{}); };
+auto const nextMoveAskDef = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) { nextMove (gameDependencies, durakNextMoveUser, AskDef{}); };
+auto const nextMoveAskAttackAndAssist = [] (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser) { nextMove (gameDependencies, durakNextMoveUser, AskAttackAndAssist{}); };
 
 auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boost::sml::back::process<pauseTimer, nextRoundTimer, resumeTimer, sendTimerEv> process_event) {
   if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer ())
@@ -1055,12 +1089,14 @@ public:
 , state<Chill>              + event<Attack>                                                         / doAttackChill
 , state<Chill>              + event<Defend>                      [isDefendingPlayer]                / doDefend
 , state<Chill>              + event<userRelogged>                                                   / userReloggedInChillState
+, state<Chill>              + event<NextMove>                                                       / nextMoveChill
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskDef>             + on_entry<_>                                                           / startAskDef
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [not isDefendingPlayer]            / needsToBeDefendingPlayerError
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer> [wantsToTakeCards]                 / blockOnlyDef                                = state<AskAttackAndAssist>
 , state<AskDef>             + event<DefendWantToTakeCardsAnswer>                                    / handleDefendSuccess                         = state<Chill>
 , state<AskDef>             + event<userRelogged>                                                   / (userReloggedInAskDef)
+, state<AskDef>             + event<NextMove>                                                       / nextMoveAskDef
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 , state<AskAttackAndAssist> + on_entry<_>                                                           / startAskAttackAndAssist
 , state<AskAttackAndAssist> + event<AttackPass>                                                     /(setAttackAnswer,checkAttackAndAssistAnswer)
@@ -1069,9 +1105,10 @@ public:
 , state<AskAttackAndAssist> + event<Attack>                                                         / doAttackAskAttackAndAssist
 , state<AskAttackAndAssist> + event<chill>                                                                                                        =state<Chill>
 , state<AskAttackAndAssist> + event<userRelogged>                                                   / userReloggedInAskAttackAssist
+, state<AskAttackAndAssist> + event<NextMove>                                                       / nextMoveAskAttackAndAssist
 // /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/      
 ,*"leaveGameHandler"_s      + event<LeaveGame>                                                      / userLeftGame                                
-,*"nextMove"_s              + event<NextMove>                                                       / nextMove                                
+//,*"nextMove"_s
 ,*"timerHandler"_s          + event<initTimer>                   [timerActive]                      / initTimerHandler
 , "timerHandler"_s          + event<nextRoundTimer>              [timerActive]                      / nextRoundTimerHandler
 , "timerHandler"_s          + event<pauseTimer>                  [timerActive]                      / pauseTimerHandler

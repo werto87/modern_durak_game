@@ -8,54 +8,83 @@
 #include <durak/gameOption.hxx>
 #include <durak_computer_controlled_opponent/solve.hxx>
 #include <durak_computer_controlled_opponent/util.hxx>
-std::optional<shared_class::DurakNextMoveSuccess> calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping);
+std::optional<shared_class::DurakNextMoveSuccess> calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, auto const &currentState);
 struct PassAttackAndAssist
 {
   bool attack{};
   bool assist{};
 };
 std::vector<shared_class::Move> calculateAllowedMovesWithPassState (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist);
-bool hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist);
-
-TEST_CASE ("hasToMove no card played", "[game]")
+bool hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, auto const &currentState);
+struct Chill
+{
+};
+struct AskDef
+{
+};
+struct AskAttackAndAssist
+{
+};
+TEST_CASE ("hasToMove Chill no card played", "[game]")
 {
   using namespace durak;
   using namespace durak_computer_controlled_opponent;
   auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
-  SECTION ("attack moves") { REQUIRE (hasToMove (game, PlayerRole::attack, {})); }
-  SECTION ("defend moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::defend, {})); }
+  SECTION ("attack moves") { REQUIRE (hasToMove (game, PlayerRole::attack, {}, Chill{})); }
+  SECTION ("defend moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::defend, {}, Chill{})); }
 }
 
-TEST_CASE ("hasToMove card played", "[game]")
+TEST_CASE ("hasToMove Chill card played", "[game]")
 {
   using namespace durak;
   using namespace durak_computer_controlled_opponent;
   auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
   game.playerStartsAttack ({ { 3, durak::Type::clubs } });
-  SECTION ("attack moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::attack, {})); }
-  SECTION ("defend moves") { REQUIRE (hasToMove (game, PlayerRole::defend, {})); }
+  SECTION ("attack moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::attack, {}, Chill{})); }
+  SECTION ("defend moves") { REQUIRE (hasToMove (game, PlayerRole::defend, {}, Chill{})); }
 }
 
-TEST_CASE ("hasToMove attack,defend", "[game]")
-{
-  using namespace durak;
-  using namespace durak_computer_controlled_opponent;
-  auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
-  game.playerStartsAttack ({ { 3, durak::Type::clubs } });
-  game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
-  SECTION ("attack moves") { REQUIRE (hasToMove (game, PlayerRole::attack, {})); }
-  SECTION ("defend moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::defend, {})); }
-}
-
-TEST_CASE ("hasToMove attack,defend,pass", "[game]")
+TEST_CASE ("hasToMove Chill attack,defend", "[game]")
 {
   using namespace durak;
   using namespace durak_computer_controlled_opponent;
   auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
   game.playerStartsAttack ({ { 3, durak::Type::clubs } });
   game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
-  SECTION ("attack moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::attack, { true, true })); }
-  SECTION ("defend moves") { REQUIRE (hasToMove (game, PlayerRole::defend, { true, true })); }
+  SECTION ("attack moves") { REQUIRE (hasToMove (game, PlayerRole::attack, {}, Chill{})); }
+  SECTION ("defend moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::defend, {}, Chill{})); }
+}
+
+TEST_CASE ("hasToMove Chill attack,defend,pass", "[game]")
+{
+  using namespace durak;
+  using namespace durak_computer_controlled_opponent;
+  auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
+  game.playerStartsAttack ({ { 3, durak::Type::clubs } });
+  game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
+  SECTION ("attack moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::attack, { true, true }, Chill{})); }
+  SECTION ("defend moves") { REQUIRE (hasToMove (game, PlayerRole::defend, { true, true }, Chill{})); }
+}
+
+TEST_CASE ("hasToMove AskAttackAndAssist attack,defend", "[game]")
+{
+  using namespace durak;
+  using namespace durak_computer_controlled_opponent;
+  auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
+  game.playerStartsAttack ({ { 3, durak::Type::clubs } });
+  SECTION ("attack moves") { REQUIRE (hasToMove (game, PlayerRole::attack, {}, AskAttackAndAssist{})); }
+  SECTION ("defend moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::defend, {}, AskAttackAndAssist{})); }
+}
+
+TEST_CASE ("hasToMove AskDef attack,defend", "[game]")
+{
+  using namespace durak;
+  using namespace durak_computer_controlled_opponent;
+  auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
+  game.playerStartsAttack ({ { 3, durak::Type::clubs } });
+  game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
+  SECTION ("attack moves") { REQUIRE_FALSE (hasToMove (game, PlayerRole::attack, { true, true }, AskDef{})); }
+  SECTION ("defend moves") { REQUIRE (hasToMove (game, PlayerRole::defend, { true, true }, AskDef{})); }
 }
 
 TEST_CASE ("calcNextMove fresh round", "[game]")
@@ -77,25 +106,16 @@ TEST_CASE ("calcNextMove fresh round", "[game]")
   {
     auto playerRole = durak::PlayerRole::attack;
     auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    if (hasToMove (game, playerRole, passAttackAndAssist, Chill{}))
       {
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
         REQUIRE (calculatedNextMove.has_value ());
       }
-  }
-  SECTION ("defend moves")
-  {
-    auto playerRole = durak::PlayerRole::defend;
-    auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    else
       {
-
-        auto actionForRole = nextActionForRole (result, playerRole);
-        auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        REQUIRE_FALSE (calculatedNextMove.has_value ());
+        REQUIRE (false);
       }
   }
 }
@@ -116,29 +136,20 @@ TEST_CASE ("calcNextMove first card played", "[game]")
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
   auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
-  SECTION ("attack moves")
-  {
-    auto playerRole = durak::PlayerRole::attack;
-    auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
-      {
-
-        auto actionForRole = nextActionForRole (result, playerRole);
-        auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        REQUIRE_FALSE (calculatedNextMove.has_value ());
-      }
-  }
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
     auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    if (hasToMove (game, playerRole, passAttackAndAssist, Chill{}))
       {
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
         REQUIRE (calculatedNextMove.has_value ());
+      }
+    else
+      {
+        REQUIRE (false);
       }
   }
 }
@@ -164,26 +175,17 @@ TEST_CASE ("calcNextMove first card played and defended", "[game]")
   {
     auto playerRole = durak::PlayerRole::attack;
     auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    if (hasToMove (game, playerRole, passAttackAndAssist, Chill{}))
       {
 
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
         REQUIRE (calculatedNextMove.has_value ());
       }
-  }
-  SECTION ("defend moves")
-  {
-    auto playerRole = durak::PlayerRole::defend;
-    auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    else
       {
-
-        auto actionForRole = nextActionForRole (result, playerRole);
-        auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        REQUIRE_FALSE (calculatedNextMove.has_value ());
+        REQUIRE (false);
       }
   }
 }
@@ -196,7 +198,6 @@ TEST_CASE ("calcNextMove first card, defended, attack pass", "[game]")
   auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
   game.playerStartsAttack ({ { 3, durak::Type::clubs } });
   game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
-
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
   compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
@@ -206,28 +207,20 @@ TEST_CASE ("calcNextMove first card, defended, attack pass", "[game]")
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
   auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
-  SECTION ("attack moves")
-  {
-    auto playerRole = durak::PlayerRole::attack;
-    auto passAttackAndAssist = PassAttackAndAssist{ true, true };
-    if (hasToMove (game, playerRole, passAttackAndAssist))
-      {
-        auto actionForRole = nextActionForRole (result, playerRole);
-        auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        REQUIRE_FALSE (calculatedNextMove.has_value ());
-      }
-  }
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
     auto passAttackAndAssist = PassAttackAndAssist{ true, true };
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    if (hasToMove (game, playerRole, passAttackAndAssist, Chill{}))
       {
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
         REQUIRE (calculatedNextMove.has_value ());
+      }
+    else
+      {
+        REQUIRE (false);
       }
   }
 }
@@ -248,28 +241,50 @@ TEST_CASE ("calcNextMove first card, defended has to take cards", "[game]")
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
   auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
-  SECTION ("attack moves")
-  {
-    auto playerRole = durak::PlayerRole::attack;
-    auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
-      {
-        auto actionForRole = nextActionForRole (result, playerRole);
-        auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
-        REQUIRE_FALSE (calculatedNextMove.has_value ());
-      }
-  }
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
     auto passAttackAndAssist = PassAttackAndAssist{};
-    if (hasToMove (game, playerRole, passAttackAndAssist))
+    if (hasToMove (game, playerRole, passAttackAndAssist, Chill{}))
       {
         auto actionForRole = nextActionForRole (result, playerRole);
         auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
-        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack);
+        auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
         REQUIRE (calculatedNextMove.has_value ());
       }
+    else
+      {
+        REQUIRE (false);
+      }
+  }
+}
+
+TEST_CASE ("calcNextMove first card, defended, second card", "[game]")
+{
+  using namespace durak;
+  using namespace durak_computer_controlled_opponent;
+  soci::session sql (soci::sqlite3, DEFAULT_DATABASE_PATH);
+  auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 3, .trump = Type::hearts, .customCardDeck = std::vector<Card>{ { 7, durak::Type::spades }, { 2, durak::Type::diamonds }, { 5, durak::Type::hearts }, { 5, durak::Type::clubs }, { 9, durak::Type::hearts }, { 4, durak::Type::hearts } } } };
+  game.playerStartsAttack ({ { 4, durak::Type::hearts } });
+  game.playerDefends ({ 4, durak::Type::hearts }, { 5, durak::Type::hearts });
+  game.playerStartsAttack ({ { 5, durak::Type::clubs } });
+  auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
+  auto attackCardsCompressed = std::vector<uint8_t>{};
+  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+  auto defendCardsCompressed = std::vector<uint8_t>{};
+  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+  auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
+  REQUIRE (someRound.has_value ());
+  auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
+  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+  SECTION ("defend moves")
+  {
+    auto playerRole = durak::PlayerRole::defend;
+    auto passAttackAndAssist = PassAttackAndAssist{};
+    REQUIRE (hasToMove (game, playerRole, passAttackAndAssist, Chill{}));
+    auto actionForRole = nextActionForRole (result, playerRole);
+    auto allowedMoves = calculateAllowedMovesWithPassState (game, playerRole, passAttackAndAssist);
+    auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
+    REQUIRE (calculatedNextMove.has_value ());
   }
 }

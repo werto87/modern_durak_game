@@ -359,6 +359,42 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.run_for (std::chrono::seconds{ 5 });
     REQUIRE (playerCount == 2);
   }
+  SECTION ("NextMove 1vs3 attack")
+  {
+    using namespace durak;
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame{};
+    startGame.players = { "NextMove" };
+    startGame.gameOption.gameOption.cardsInHands = std::vector<std::vector<Card> >{};
+    startGame.gameOption.gameOption.customCardDeck = std::vector<Card>{};
+    auto playerOneCards = std::vector<Card>{ { 1, Type::clubs } };
+    auto playerTwoCards = std::vector<Card>{ { 2, Type::clubs }, { 2, Type::hearts }, { 1, Type::hearts } };
+    startGame.gameOption.gameOption.cardsInHands->push_back (playerOneCards);
+    startGame.gameOption.gameOption.cardsInHands->push_back (playerTwoCards);
+    startGame.gameOption.computerControlledPlayerCount = 1;
+    auto sendMessageBeforeStartRead = std::vector<std::string>{ objectToStringWithObjectName (startGame) };
+    co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
+    ioContext.run_for (std::chrono::seconds{ 5 });
+    ioContext.reset ();
+    co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+    auto unhandledEventError = false;
+    auto someMsg = [&unhandledEventError] (boost::asio::io_context &ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+      if (msg.starts_with ("GameData"))
+        {
+          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakNextMove{}));
+        }
+      if (msg.starts_with ("DurakNextMoveSuccess"))
+        {
+          unhandledEventError = true;
+          ioContext.stop ();
+        }
+    };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"NextMove","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
+    ioContext.run_for (std::chrono::seconds{ 1000 });
+    REQUIRE (unhandledEventError);
+  }
   SECTION ("ComputerControlledOpponent timer")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
