@@ -671,7 +671,11 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
     }
   else if (playerRole == durak::PlayerRole::defend)
     {
-      if (action and ranges::find (moves, shared_class::Move::Defend) != moves.end ())
+      if (action and action.value ().value () == 253)
+        {
+          return shared_class::DurakNextMoveSuccess{ shared_class::Move::TakeCards, std::nullopt };
+        }
+      else if (action and ranges::find (moves, shared_class::Move::Defend) != moves.end ())
         {
           if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != defendIdCardMapping.end ())
             {
@@ -726,7 +730,9 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
           if (someRound)
             {
               auto const &actions = historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
-              auto const &result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+              auto const &moveResult = binaryToMoveResult (someRound.value ().combination);
+              auto test = moveResult;
+              auto const &result = nextActionsAndResults (actions, moveResult);
               auto const &actionForRole = nextActionForRole (result, playerRole);
               auto const &allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
               auto const &calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, currentState);
