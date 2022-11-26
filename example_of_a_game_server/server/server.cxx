@@ -129,9 +129,6 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                                                                      {
                                                                        auto const &typeToSearch = splitMessage.at (0);
                                                                        auto const &objectAsString = splitMessage.at (1);
-                                                                       // TODO type to search only if move avaible is send
-                                                                       // TODO maybe remove rest of the type checks beside move avaible => send next move
-                                                                       // TODO and next move success => play that move
                                                                        if (typeToSearch == confu_json::type_name<shared_class::DurakAllowedMoves> () and not stringToObject<shared_class::DurakAllowedMoves> (objectAsString).allowedMoves.empty ())
                                                                          {
                                                                            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
