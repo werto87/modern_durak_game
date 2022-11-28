@@ -392,7 +392,7 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint{ ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"NextMove","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), printException);
-    ioContext.run_for (std::chrono::seconds{ 1000 });
+    ioContext.run_for (std::chrono::seconds{ 5 });
     REQUIRE (unhandledEventError);
   }
   SECTION ("ComputerControlledOpponent timer")

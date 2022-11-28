@@ -645,7 +645,14 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                 }
               else
                 {
-                  return std::nullopt;
+                  if (std::same_as<CurrentStateType, AskAttackAndAssist>)
+                    {
+                      return shared_class::DurakNextMoveSuccess{ shared_class::Move::AttackAssistDoneAddingCards, {} };
+                    }
+                  else
+                    {
+                      return std::nullopt;
+                    }
                 }
             }
           else if (std::same_as<CurrentStateType, AskAttackAndAssist>)
@@ -777,7 +784,7 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
         }
       else
         {
-          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "Do not move. Game things you do not have to move. Please wait for other players to move." }));
+          user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "Do not move. Game thinks you do not have to move. Please wait for other players to move." }));
         }
     }
   else

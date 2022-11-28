@@ -2,10 +2,13 @@
 #include "constant.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
 #include "example_of_a_game_server/server/server.hxx"
+#include "example_of_a_game_server/util.hxx"
 #include <catch2/catch.hpp>
 #include <durak/card.hxx>
 #include <durak/game.hxx>
 #include <durak/gameOption.hxx>
+#include <durak_computer_controlled_opponent/compressCard.hxx>
+#include <durak_computer_controlled_opponent/permutation.hxx>
 #include <durak_computer_controlled_opponent/solve.hxx>
 #include <durak_computer_controlled_opponent/util.hxx>
 std::optional<shared_class::DurakNextMoveSuccess> calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, auto const &currentState);
@@ -25,6 +28,7 @@ struct AskDef
 struct AskAttackAndAssist
 {
 };
+void playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, auto const &msg);
 TEST_CASE ("hasToMove Chill no card played", "[game]")
 {
   using namespace durak;
@@ -287,4 +291,64 @@ TEST_CASE ("calcNextMove first card, defended, second card", "[game]")
     auto calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, Chill{});
     REQUIRE (calculatedNextMove.has_value ());
   }
+}
+
+std::vector<std::vector<std::vector<durak::Card> > >
+attackDefendCards (uint64_t attackCardCount, uint64_t defendCardCount)
+{
+  auto result = std::vector<std::vector<std::vector<durak::Card> > >{};
+  using namespace durak;
+  auto combinations = durak_computer_controlled_opponent::compressed_permutations ({ attackCardCount, defendCardCount }, 20);
+  std::cout << "combinations.size (): " << combinations.size () << std::endl;
+  for (const auto &combi : combinations)
+    {
+      auto cards = durak_computer_controlled_opponent::idsToCards (combi);
+      auto attackCards = std::vector<Card> (cards.begin (), cards.begin () + static_cast<long> (attackCardCount));
+      auto defendCards = std::vector<Card> (cards.begin () + static_cast<long> (attackCardCount), cards.end ());
+      result.push_back (std::vector<std::vector<Card> >{ attackCards, defendCards });
+    }
+  return result;
+}
+
+TEST_CASE ("play the game", "[game]")
+{
+  using namespace durak_computer_controlled_opponent;
+  auto gamesPlayed = uint64_t{ 0 };
+  std::cout << "start attackDefendCards (3, 3)" << std::endl;
+  auto cardsToPlay = attackDefendCards (3, 3);
+  std::cout << "finish attackDefendCards (3, 3)" << std::endl;
+  for (auto const &attackAndDefendCards : cardsToPlay)
+    {
+      for (auto trumpType : { durak::Type::hearts, durak::Type::clubs, durak::Type::diamonds, durak::Type::spades })
+        {
+          gamesPlayed++;
+          std::cout << "gamesPlayed: " << gamesPlayed << " games to play: " << cardsToPlay.size () << std::endl;
+          matchmaking_game::StartGame startGame{};
+          startGame.gameOption.gameOption = durak::GameOption{ .numberOfCardsPlayerShouldHave = 3, .trump = trumpType, .customCardDeck = std::vector<durak::Card>{}, .cardsInHands = attackAndDefendCards };
+          startGame.gameOption.opponentCards = shared_class::OpponentCards::showOpponentCards;
+          std::string gameName{ "gameName" };
+          std::list<User> users{};
+          boost::asio::io_context ioContext{};
+          boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint_{};
+          auto computerControlledPlayerNames = std::vector<std::string>{ "a", "b" };
+          std::list<Game> games{};
+          auto gameOver = false;
+          ranges::for_each (computerControlledPlayerNames, [&gameOver, gameName, &games = games, &users, &ioContext] (auto const &id) {
+            users.push_back ({ id,
+                               [&gameOver, id, gameName, &games = games, &ioContext] (auto const &msg) {
+                                 if (boost::starts_with (msg, "DurakGameOverWon") or boost::starts_with (msg, "DurakGameOverDraw"))
+                                   {
+                                     gameOver = true;
+                                     ioContext.stop ();
+                                   }
+                                 playNextMove (id, gameName, games, ioContext, msg);
+                               },
+                               std::make_shared<boost::asio::system_timer> (ioContext) });
+          });
+          auto &game = games.emplace_back (Game{ startGame, gameName, std::move (users), ioContext, gameToMatchmakingEndpoint_, DEFAULT_DATABASE_PATH });
+          game.startGame ();
+          ioContext.run_for (std::chrono::seconds{ 1000 });
+          REQUIRE (gameOver);
+        }
+    }
 }

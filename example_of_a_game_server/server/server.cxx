@@ -71,10 +71,40 @@ playSuggestedMove (shared_class::DurakNextMoveSuccess const &durakNextMoveSucces
     }
 }
 
+void
+playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, auto const &msg)
+{
+#ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
+  std::cout << "id: " << id << " msg to computer controlled opponent: " << msg << std::endl;
+#endif
+  boost::asio::post (ioContext, [&, msg] () {
+    std::vector<std::string> splitMessage{};
+    boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
+    if (splitMessage.size () == 2)
+      {
+        auto const &typeToSearch = splitMessage.at (0);
+        auto const &objectAsString = splitMessage.at (1);
+        if (typeToSearch == confu_json::type_name<shared_class::DurakAllowedMoves> () and not stringToObject<shared_class::DurakAllowedMoves> (objectAsString).allowedMoves.empty ())
+          {
+            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+              {
+                gameWithPlayer->processEvent (objectToStringWithObjectName (shared_class::DurakNextMove{}), id);
+              }
+          }
+        else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveSuccess> ())
+          {
+            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+              {
+                playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
+              }
+          }
+      }
+  });
+}
+
 awaitable<void>
 Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, std::string matchmakingHost, std::string matchmakingPort, std::filesystem::path databasePath)
 {
-  auto executor = co_await this_coro::executor;
   tcp_acceptor acceptor (ioContext, userToGameViaMatchmakingEndpoint);
   for (;;)
     {
@@ -91,7 +121,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
           using namespace boost::asio::experimental::awaitable_operators;
           tcp::resolver resolv{ ioContext };
           auto resolvedGameToMatchmakingEndpoint = co_await resolv.async_resolve (ip::tcp::v4 (), matchmakingHost, matchmakingPort, use_awaitable);
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, executor, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (const std::string &msg) mutable {
+          co_spawn (ioContext, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (const std::string &msg) mutable {
             std::vector<std::string> splitMessage{};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -103,7 +133,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                     auto connectToGame = stringToObject<matchmaking_game::ConnectToGame> (objectAsString);
                     if (auto gameToCreate = ranges::find (gamesToCreate, connectToGame.gameName, [] (GameToCreate const &gameToCreate) { return gameToCreate.gameName; }); gameToCreate != gamesToCreate.end ())
                       {
-                        if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &msg) { myWebsocket->sendMessage (msg); }, std::make_shared<boost::asio::system_timer> (executor) }))
+                        if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &msg) { myWebsocket->sendMessage (msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
                           {
                             myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError{ connectToGameError.value () }));
                           }
@@ -116,38 +146,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           {
                             auto computerControlledPlayerNames = std::vector<std::string> (gameToCreate->startGame.gameOption.computerControlledPlayerCount);
                             ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
-                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &executor, &ioContext] (auto const &id) {
-                              gameToCreate->users.push_back ({ id,
-                                                               [id, gameName, &games = games, &ioContext] (auto const &msg) {
-#ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
-                                                                 std::cout << "msg to computer controlled opponent: " << msg << std::endl;
-#endif
-                                                                 boost::asio::post (ioContext, [&, msg] () {
-                                                                   std::vector<std::string> splitMessage{};
-                                                                   boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
-                                                                   if (splitMessage.size () == 2)
-                                                                     {
-                                                                       auto const &typeToSearch = splitMessage.at (0);
-                                                                       auto const &objectAsString = splitMessage.at (1);
-                                                                       if (typeToSearch == confu_json::type_name<shared_class::DurakAllowedMoves> () and not stringToObject<shared_class::DurakAllowedMoves> (objectAsString).allowedMoves.empty ())
-                                                                         {
-                                                                           if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
-                                                                             {
-                                                                               gameWithPlayer->processEvent (objectToStringWithObjectName (shared_class::DurakNextMove{}), id);
-                                                                             }
-                                                                         }
-                                                                       else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveSuccess> ())
-                                                                         {
-                                                                           if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
-                                                                             {
-                                                                               playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
-                                                                             }
-                                                                         }
-                                                                     }
-                                                                 });
-                                                               },
-                                                               std::make_shared<boost::asio::system_timer> (executor) });
-                            });
+                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &ioContext] (auto const &id) { gameToCreate->users.push_back ({ id, [id, gameName, &games = games, &ioContext] (auto const &msg) { playNextMove (id, gameName, games, ioContext, msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
                             auto &game = games.emplace_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             game.startGame ();
                             gamesToCreate.erase (gameToCreate);
