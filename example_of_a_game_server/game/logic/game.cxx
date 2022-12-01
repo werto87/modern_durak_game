@@ -729,6 +729,8 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
           using namespace durak_computer_controlled_opponent;
           soci::session sql (soci::sqlite3, gameDependencies.databasePath);
           auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (gameDependencies.game);
+          auto debug = compressedCardsForAttack;
+          auto debug1 = compressedCardsForDefend;
           auto attackCardsCompressed = std::vector<uint8_t>{};
           compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
           auto defendCardsCompressed = std::vector<uint8_t>{};
@@ -736,20 +738,27 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
           auto const &someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
           if (someRound)
             {
-              auto const &actions = historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
-              auto const &moveResult = binaryToMoveResult (someRound.value ().combination);
-              auto test = moveResult;
-              auto const &result = nextActionsAndResults (actions, moveResult);
-              auto const &actionForRole = nextActionForRole (result, playerRole);
-              auto const &allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
-              auto const &calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, currentState);
-              if (calculatedNextMove)
+              if (someRound->combination.empty ())
                 {
-                  user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
+                  //  TODO implement fallback for this combinations currently are around 1000 which is a low % of total combinations
+                  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "Unsupported card combination." }));
                 }
               else
                 {
-                  user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a move. Are you sure you have to Move?" }));
+                  auto const &actions = historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
+                  auto const &moveResult = binaryToMoveResult (someRound.value ().combination);
+                  auto const &result = nextActionsAndResults (actions, moveResult);
+                  auto const &actionForRole = nextActionForRole (result, playerRole);
+                  auto const &allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
+                  auto const &calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, currentState);
+                  if (calculatedNextMove)
+                    {
+                      user.sendMsgToUser (objectToStringWithObjectName (*calculatedNextMove));
+                    }
+                  else
+                    {
+                      user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError{ "could not find a move. Are you sure you have to Move?" }));
+                    }
                 }
             }
           else if (attackCardsCompressed.size () == 1 and defendCardsCompressed.size () > 1)

@@ -5,7 +5,7 @@ confu_json/0.0.10@werto87/stable
 range-v3/0.12.0
 sml/1.1.5
 magic_enum/0.7.3
-durak_computer_controlled_opponent/0.0.9@werto87/stable
+durak_computer_controlled_opponent/0.0.11@werto87/stable
 confu_soci/0.3.2@werto87/stable
 corrade/2020.06
 [generators]

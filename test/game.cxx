@@ -314,15 +314,13 @@ TEST_CASE ("play the game", "[game]")
 {
   using namespace durak_computer_controlled_opponent;
   auto gamesPlayed = uint64_t{ 0 };
-  std::cout << "start attackDefendCards (3, 3)" << std::endl;
   auto cardsToPlay = attackDefendCards (3, 3);
-  std::cout << "finish attackDefendCards (3, 3)" << std::endl;
   for (auto const &attackAndDefendCards : cardsToPlay)
     {
-      for (auto trumpType : { durak::Type::hearts, durak::Type::clubs, durak::Type::diamonds, durak::Type::spades })
+      for (auto trumpType : { durak::Type::spades, durak::Type::diamonds, durak::Type::hearts, durak::Type::clubs })
         {
-          gamesPlayed++;
-          std::cout << "gamesPlayed: " << gamesPlayed << " games to play: " << cardsToPlay.size () << std::endl;
+          //          if (gamesPlayed == 1109)
+          //            {
           matchmaking_game::StartGame startGame{};
           startGame.gameOption.gameOption = durak::GameOption{ .numberOfCardsPlayerShouldHave = 3, .trump = trumpType, .customCardDeck = std::vector<durak::Card>{}, .cardsInHands = attackAndDefendCards };
           startGame.gameOption.opponentCards = shared_class::OpponentCards::showOpponentCards;
@@ -341,6 +339,13 @@ TEST_CASE ("play the game", "[game]")
                                      gameOver = true;
                                      ioContext.stop ();
                                    }
+                                 // clang-format off
+                                 if (boost::starts_with (msg, R"(DurakNextMoveError|{"error":"Unsupported card combination."})"))
+                                   // clang-format on
+                                   {
+                                     gameOver = true;
+                                     ioContext.stop ();
+                                   }
                                  playNextMove (id, gameName, games, ioContext, msg);
                                },
                                std::make_shared<boost::asio::system_timer> (ioContext) });
@@ -349,6 +354,14 @@ TEST_CASE ("play the game", "[game]")
           game.startGame ();
           ioContext.run_for (std::chrono::seconds{ 1000 });
           REQUIRE (gameOver);
+          gamesPlayed++;
+          //          std::cout << "gamesPlayed: " << gamesPlayed << " total games to play: " << cardsToPlay.size () << std::endl;
+          //            }
+          //          else
+          //            {
+          //              gamesPlayed++;
+          std::cout << "gamesPlayed: " << gamesPlayed << " total games to play: " << cardsToPlay.size () << std::endl;
+          //            }
         }
     }
 }
