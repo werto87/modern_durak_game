@@ -313,55 +313,43 @@ attackDefendCards (uint64_t attackCardCount, uint64_t defendCardCount)
 TEST_CASE ("play the game", "[game]")
 {
   using namespace durak_computer_controlled_opponent;
-  auto gamesPlayed = uint64_t{ 0 };
-  auto cardsToPlay = attackDefendCards (3, 3);
-  for (auto const &attackAndDefendCards : cardsToPlay)
-    {
-      for (auto trumpType : { durak::Type::spades, durak::Type::diamonds, durak::Type::hearts, durak::Type::clubs })
-        {
-          //          if (gamesPlayed == 1109)
-          //            {
-          matchmaking_game::StartGame startGame{};
-          startGame.gameOption.gameOption = durak::GameOption{ .numberOfCardsPlayerShouldHave = 3, .trump = trumpType, .customCardDeck = std::vector<durak::Card>{}, .cardsInHands = attackAndDefendCards };
-          startGame.gameOption.opponentCards = shared_class::OpponentCards::showOpponentCards;
-          std::string gameName{ "gameName" };
-          std::list<User> users{};
-          boost::asio::io_context ioContext{};
-          boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint_{};
-          auto computerControlledPlayerNames = std::vector<std::string>{ "a", "b" };
-          std::list<Game> games{};
-          auto gameOver = false;
-          ranges::for_each (computerControlledPlayerNames, [&gameOver, gameName, &games = games, &users, &ioContext] (auto const &id) {
-            users.push_back ({ id,
-                               [&gameOver, id, gameName, &games = games, &ioContext] (auto const &msg) {
-                                 if (boost::starts_with (msg, "DurakGameOverWon") or boost::starts_with (msg, "DurakGameOverDraw"))
-                                   {
-                                     gameOver = true;
-                                     ioContext.stop ();
-                                   }
-                                 // clang-format off
+  auto cardsInHands = std::vector<std::vector<durak::Card> >{};
+  auto playerOneCards = std::vector<durak::Card>{ { 1, durak::Type::clubs }, { 4, durak::Type::clubs }, { 5, durak::Type::clubs } };
+  auto playerTwoCards = std::vector<durak::Card>{ { 2, durak::Type::clubs }, { 2, durak::Type::hearts }, { 1, durak::Type::hearts } };
+  cardsInHands.push_back (playerOneCards);
+  cardsInHands.push_back (playerTwoCards);
+  auto trumpType = durak::Type::spades;
+  matchmaking_game::StartGame startGame{};
+  startGame.gameOption.gameOption = durak::GameOption{ .numberOfCardsPlayerShouldHave = 3, .trump = trumpType, .customCardDeck = std::vector<durak::Card>{}, .cardsInHands = cardsInHands };
+  startGame.gameOption.opponentCards = shared_class::OpponentCards::showOpponentCards;
+  std::string gameName{ "gameName" };
+  std::list<User> users{};
+  boost::asio::io_context ioContext{};
+  boost::asio::ip::tcp::endpoint gameToMatchmakingEndpoint_{};
+  auto computerControlledPlayerNames = std::vector<std::string>{ "a", "b" };
+  std::list<Game> games{};
+  auto gameOver = false;
+  ranges::for_each (computerControlledPlayerNames, [&gameOver, gameName, &games = games, &users, &ioContext] (auto const &id) {
+    users.push_back ({ id,
+                       [&gameOver, id, gameName, &games = games, &ioContext] (auto const &msg) {
+                         if (boost::starts_with (msg, "DurakGameOverWon") or boost::starts_with (msg, "DurakGameOverDraw"))
+                           {
+                             gameOver = true;
+                             ioContext.stop ();
+                           }
+                         // clang-format off
                                  if (boost::starts_with (msg, R"(DurakNextMoveError|{"error":"Unsupported card combination."})"))
-                                   // clang-format on
-                                   {
-                                     gameOver = true;
-                                     ioContext.stop ();
-                                   }
-                                 playNextMove (id, gameName, games, ioContext, msg);
-                               },
-                               std::make_shared<boost::asio::system_timer> (ioContext) });
-          });
-          auto &game = games.emplace_back (Game{ startGame, gameName, std::move (users), ioContext, gameToMatchmakingEndpoint_, DEFAULT_DATABASE_PATH });
-          game.startGame ();
-          ioContext.run_for (std::chrono::seconds{ 1000 });
-          REQUIRE (gameOver);
-          gamesPlayed++;
-          //          std::cout << "gamesPlayed: " << gamesPlayed << " total games to play: " << cardsToPlay.size () << std::endl;
-          //            }
-          //          else
-          //            {
-          //              gamesPlayed++;
-          std::cout << "gamesPlayed: " << gamesPlayed << " total games to play: " << cardsToPlay.size () << std::endl;
-          //            }
-        }
-    }
+                           // clang-format on
+                           {
+                             gameOver = true;
+                             ioContext.stop ();
+                           }
+                         playNextMove (id, gameName, games, ioContext, msg);
+                       },
+                       std::make_shared<boost::asio::system_timer> (ioContext) });
+  });
+  auto &game = games.emplace_back (Game{ startGame, gameName, std::move (users), ioContext, gameToMatchmakingEndpoint_, DEFAULT_DATABASE_PATH });
+  game.startGame ();
+  ioContext.run_for (std::chrono::seconds{ 5 });
+  REQUIRE (gameOver);
 }
