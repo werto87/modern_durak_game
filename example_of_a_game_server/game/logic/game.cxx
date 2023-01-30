@@ -1149,7 +1149,7 @@ struct my_logger
   void
   log_process_event (const TEvent &event)
   {
-    if constexpr (confu_json::is_adapted_struct<TEvent>::value)
+    if constexpr (boost::fusion::traits::is_sequence<TEvent>::value)
       {
         std::cout << "\n[" << aux::get_type_name<SM> () << "]"
                   << "[process_event] " << objectToStringWithObjectName (event)  << std::endl;
