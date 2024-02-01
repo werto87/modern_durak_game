@@ -1,7 +1,7 @@
 #ifndef FA9CDEF0_BEE5_4919_910F_EC780C1C3C4C
 #define FA9CDEF0_BEE5_4919_910F_EC780C1C3C4C
 
-#include "example_of_a_game_server/serialization.hxx"
+#include "util/serialization.hxx"
 #include <durak/game.hxx>
 
 struct AllowedMoves

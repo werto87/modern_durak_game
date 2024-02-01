@@ -3,9 +3,9 @@
 #include "durak/game.hxx"
 #include "durak/gameData.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
-#include "example_of_a_game_server/serialization.hxx"
-#include "example_of_a_game_server/server/user.hxx"
-#include "example_of_a_game_server/util.hxx"
+#include "util/serialization.hxx"
+#include "server/user.hxx"
+#include "util/util.hxx"
 #include <algorithm>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -31,14 +31,8 @@
 #include <durak_computer_controlled_opponent/util.hxx>
 #include <fmt/format.h>
 #include <iostream>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <optional>
-#include <pipes/dev_null.hpp>
-#include <pipes/mux.hpp>
-#include <pipes/pipes.hpp>
-#include <pipes/push_back.hpp>
-#include <pipes/transform.hpp>
-#include <pipes/unzip.hpp>
 #include <queue>
 #include <range/v3/action/erase.hpp>
 #include <range/v3/algorithm/find.hpp>
@@ -328,7 +322,7 @@ runTimer(std::shared_ptr<boost::asio::system_timer> timer, std::string const &ac
     try {
         co_await timer->async_wait(boost::asio::use_awaitable);
         removeUserFromGame(accountName, gameDependencies);
-        ranges::for_each(gameDependencies.users, [](auto const &user) { user.timer->cancel(); });
+        ranges::for_each(gameDependencies.users, [](auto const &_user) { _user.timer->cancel(); });
     }
     catch (boost::system::system_error &e) {
         using namespace boost::system::errc;
@@ -400,8 +394,8 @@ auto const nextRoundTimerHandler = [](GameDependencies &gameDependencies,
 };
 
 auto const userReloggedInChillState = [](GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
-    if (auto user = ranges::find_if(gameDependencies.users, [userName = userReloggedEv.accountName](auto const &user) {
-            return user.accountName == userName;
+    if (auto user = ranges::find_if(gameDependencies.users, [userName = userReloggedEv.accountName](auto const &_user) {
+            return _user.accountName == userName;
         }); user != gameDependencies.users.end()) {
         user->sendMsgToUser(objectToStringWithObjectName(shared_class::DurakAllowedMoves{
                 calculateAllowedMoves(gameDependencies.game,
@@ -412,8 +406,8 @@ auto const userReloggedInChillState = [](GameDependencies &gameDependencies, use
 auto const userReloggedInAskDef = [](GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
     if (gameDependencies.game.getRoleForName(userReloggedEv.accountName) == durak::PlayerRole::defend) {
         if (auto user = ranges::find_if(gameDependencies.users,
-                                        [userName = userReloggedEv.accountName](auto const &user) {
-                                            return user.accountName == userName;
+                                        [userName = userReloggedEv.accountName](auto const &_user) {
+                                            return _user.accountName == userName;
                                         }); user != gameDependencies.users.end()) {
             user->sendMsgToUser(objectToStringWithObjectName(shared_class::DurakAllowedMoves{
                     {shared_class::Move::AnswerDefendWantsToTakeCardsYes,
@@ -436,8 +430,8 @@ auto const defendsWantsToTakeCardsSendMovesToAttackOrAssist = [](durak::Game &ga
 };
 
 auto const userReloggedInAskAttackAssist = [](GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
-    if (auto user = ranges::find_if(gameDependencies.users, [userName = userReloggedEv.accountName](auto const &user) {
-            return user.accountName == userName;
+    if (auto user = ranges::find_if(gameDependencies.users, [userName = userReloggedEv.accountName](auto const &_user) {
+            return _user.accountName == userName;
         }); user != gameDependencies.users.end()) {
         if ((not gameDependencies.passAttackAndAssist.assist &&
              gameDependencies.game.getRoleForName(userReloggedEv.accountName) == durak::PlayerRole::assistAttacker) ||
@@ -570,8 +564,8 @@ auto const startAskDef = [](GameDependencies &gameDependencies,
                             boost::sml::back::process<pauseTimer, resumeTimer, sendTimerEv> process_event) {
     if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer()) {
         process_event(resumeTimer{{defendingPlayer->id}});
-        if (auto user = ranges::find_if(gameDependencies.users, [&defendingPlayer](auto const &user) {
-                return user.accountName == defendingPlayer->id;
+        if (auto user = ranges::find_if(gameDependencies.users, [&defendingPlayer](auto const &_user) {
+                return _user.accountName == defendingPlayer->id;
             }); user != gameDependencies.users.end()) {
             user->sendMsgToUser(objectToStringWithObjectName(shared_class::DurakAskDefendWantToTakeCards{}));
             user->sendMsgToUser(objectToStringWithObjectName(shared_class::DurakAllowedMoves{
@@ -631,6 +625,7 @@ hasToMove(durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAs
             return false;
         }
     }
+    return false;
 }
 
 std::optional<shared_class::DurakNextMoveSuccess>
@@ -706,9 +701,13 @@ nextMove(GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextM
             auto debug = compressedCardsForAttack;
             auto debug1 = compressedCardsForDefend;
             auto attackCardsCompressed = std::vector<uint8_t>{};
-            compressedCardsForAttack >>= pipes::unzip(pipes::push_back(attackCardsCompressed), pipes::dev_null());
+            std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+              return std::get<0>(idAndCard);
+            });
             auto defendCardsCompressed = std::vector<uint8_t>{};
-            compressedCardsForDefend >>= pipes::unzip(pipes::push_back(defendCardsCompressed), pipes::dev_null());
+            std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+              return std::get<0>(idAndCard);
+            });
             auto const &someRound = confu_soci::findStruct<database::Round>(sql, "gameState",
                                                                             database::gameStateAsString(
                                                                                     {attackCardsCompressed,
@@ -723,8 +722,7 @@ nextMove(GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextM
                     auto const &actions = historyEventsToActionsCompressedCards(gameDependencies.game.getHistory(),
                                                                                 calcCardsAndCompressedCardsForAttackAndDefend(
                                                                                         gameDependencies.game));
-                    auto const &moveResult = binaryToMoveResult(someRound.value().combination);
-                    auto const &result = nextActionsAndResults(actions, moveResult);
+                    auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
                     auto const &actionForRole = nextActionForRole(result, playerRole);
                     auto const &allowedMoves = calculateAllowedMovesWithPassState(gameDependencies.game, playerRole,
                                                                                   gameDependencies.passAttackAndAssist);
@@ -791,8 +789,8 @@ auto const startAskAttackAndAssist = [](GameDependencies &gameDependencies,
     if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer(); attackingPlayer &&
                                                                            not attackingPlayer->getCards().empty()) {
         process_event(resumeTimer{{attackingPlayer->id}});
-        if (auto user = ranges::find_if(gameDependencies.users, [&attackingPlayer](auto const &user) {
-                return user.accountName == attackingPlayer->id;
+        if (auto user = ranges::find_if(gameDependencies.users, [&attackingPlayer](auto const &_user) {
+                return _user.accountName == attackingPlayer->id;
             }); user != gameDependencies.users.end()) {
             user->sendMsgToUser(objectToStringWithObjectName(
                     shared_class::DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards{}));
@@ -804,8 +802,8 @@ auto const startAskAttackAndAssist = [](GameDependencies &gameDependencies,
     if (auto assistingPlayer = gameDependencies.game.getAssistingPlayer(); assistingPlayer &&
                                                                            not assistingPlayer->getCards().empty()) {
         process_event(resumeTimer{{assistingPlayer->id}});
-        if (auto user = ranges::find_if(gameDependencies.users, [&assistingPlayer](auto const &user) {
-                return user.accountName == assistingPlayer->id;
+        if (auto user = ranges::find_if(gameDependencies.users, [&assistingPlayer](auto const &_user) {
+                return _user.accountName == assistingPlayer->id;
             }); user != gameDependencies.users.end()) {
             user->sendMsgToUser(objectToStringWithObjectName(
                     shared_class::DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards{}));
@@ -938,8 +936,8 @@ auto const tryToAttackAndInformOtherPlayers = [](GameDependencies &gameDependenc
                                    ? gameDependencies.game.getAttackingPlayer()
                                    : gameDependencies.game.getAssistingPlayer()) {
                 if (auto otherPlayerItr = ranges::find_if(gameDependencies.users,
-                                                          [otherPlayerName = otherPlayer->id](auto const &user) {
-                                                              return user.accountName == otherPlayerName;
+                                                          [otherPlayerName = otherPlayer->id](auto const &_user) {
+                                                              return _user.accountName == otherPlayerName;
                                                           }); otherPlayerItr != gameDependencies.users.end()) {
                     defendsWantsToTakeCardsSendMovesToAttackOrAssist(gameDependencies.game, otherPlayerRole,
                                                                      *otherPlayerItr);

@@ -1,7 +1,7 @@
 #include "server.hxx"
 #include "boost/asio/experimental/awaitable_operators.hpp"
-#include "example_of_a_game_server/serialization.hxx"
-#include "example_of_a_game_server/util.hxx"
+#include "util/serialization.hxx"
+#include "util/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/this_coro.hpp>
@@ -74,7 +74,7 @@ playSuggestedMove (shared_class::DurakNextMoveSuccess const &durakNextMoveSucces
 void
 playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, auto const &msg)
 {
-#ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECIVED
+#ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECEIVED
   std::cout << "id: " << id << " msg to computer controlled opponent: " << msg << std::endl;
 #endif
   boost::asio::post (ioContext, [&, msg] () {
@@ -131,9 +131,9 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                 if (typeToSearch == "ConnectToGame")
                   {
                     auto connectToGame = stringToObject<matchmaking_game::ConnectToGame> (objectAsString);
-                    if (auto gameToCreate = ranges::find (gamesToCreate, connectToGame.gameName, [] (GameToCreate const &gameToCreate) { return gameToCreate.gameName; }); gameToCreate != gamesToCreate.end ())
+                    if (auto gameToCreate = ranges::find (gamesToCreate, connectToGame.gameName, [] (GameToCreate const &_gameToCreate) { return _gameToCreate.gameName; }); gameToCreate != gamesToCreate.end ())
                       {
-                        if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &msg) { myWebsocket->sendMessage (msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
+                        if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &_msg) { myWebsocket->sendMessage (_msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
                           {
                             myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError{ connectToGameError.value () }));
                           }
@@ -146,7 +146,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           {
                             auto computerControlledPlayerNames = std::vector<std::string> (gameToCreate->startGame.gameOption.computerControlledPlayerCount);
                             ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
-                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &ioContext] (auto const &id) { gameToCreate->users.push_back ({ id, [id, gameName, &games = games, &ioContext] (auto const &msg) { playNextMove (id, gameName, games, ioContext, msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
+                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &games = games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
                             auto &game = games.emplace_back (Game{ gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             game.startGame ();
                             gamesToCreate.erase (gameToCreate);
@@ -159,7 +159,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                   }
                 else if (accountName && accountName->has_value ())
                   {
-                    if (auto game = ranges::find_if (games, [&accountName] (Game const &game) { return game.isUserInGame (accountName->value ()); }); game != games.end ())
+                    if (auto game = ranges::find_if (games, [&accountName] (Game const &_game) { return _game.isUserInGame (accountName->value ()); }); game != games.end ())
                       {
                         if (auto const &error = game->processEvent (msg, accountName->value ()))
                           {

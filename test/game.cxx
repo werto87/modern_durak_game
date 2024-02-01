@@ -2,7 +2,7 @@
 #include "constant.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
 #include "example_of_a_game_server/server/server.hxx"
-#include "example_of_a_game_server/util.hxx"
+#include "example_of_a_game_server/util/util.hxx"
 #include <catch2/catch.hpp>
 #include <durak/card.hxx>
 #include <durak/game.hxx>
@@ -99,13 +99,17 @@ TEST_CASE ("calcNextMove fresh round", "[game]")
   auto game = durak::Game{ { "a", "b" }, GameOption{ .numberOfCardsPlayerShouldHave = 2, .customCardDeck = std::vector<Card>{ { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } } } };
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+  std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto defendCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+  std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
   SECTION ("attack moves")
   {
     auto playerRole = durak::PlayerRole::attack;
@@ -133,13 +137,17 @@ TEST_CASE ("calcNextMove first card played", "[game]")
   game.playerStartsAttack ({ { 3, durak::Type::clubs } });
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+  std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto defendCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+  std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
@@ -168,13 +176,17 @@ TEST_CASE ("calcNextMove first card played and defended", "[game]")
   game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+  std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto defendCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+  std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
   SECTION ("attack moves pass")
   {
     auto playerRole = durak::PlayerRole::attack;
@@ -204,13 +216,17 @@ TEST_CASE ("calcNextMove first card, defended, attack pass", "[game]")
   game.playerDefends ({ 3, durak::Type::clubs }, { 7, durak::Type::clubs });
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+    std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto defendCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+    std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+    auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
@@ -238,13 +254,17 @@ TEST_CASE ("calcNextMove first card, defended has to take cards", "[game]")
   game.playerStartsAttack ({ { 3, durak::Type::hearts } });
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+    std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto defendCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+    std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+    auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
@@ -274,13 +294,17 @@ TEST_CASE ("calcNextMove first card, defended, second card", "[game]")
   game.playerStartsAttack ({ { 5, durak::Type::clubs } });
   auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (game);
   auto attackCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForAttack >>= pipes::unzip (pipes::push_back (attackCardsCompressed), pipes::dev_null ());
+    std::ranges::transform(compressedCardsForAttack,std::back_inserter (attackCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto defendCardsCompressed = std::vector<uint8_t>{};
-  compressedCardsForDefend >>= pipes::unzip (pipes::push_back (defendCardsCompressed), pipes::dev_null ());
+    std::ranges::transform(compressedCardsForDefend,std::back_inserter (defendCardsCompressed),[](auto const& idAndCard){
+    return std::get<0>(idAndCard);
+  });
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, binaryToMoveResult (someRound.value ().combination));
+    auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree(binaryToMoveResult (someRound.value ().combination)));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
