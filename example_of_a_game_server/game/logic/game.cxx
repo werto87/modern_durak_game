@@ -3,7 +3,7 @@
 #include "durak/game.hxx"
 #include "durak/gameData.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
-#include "util/serialization.hxx"
+#include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include "server/user.hxx"
 #include "util/util.hxx"
 #include <algorithm>

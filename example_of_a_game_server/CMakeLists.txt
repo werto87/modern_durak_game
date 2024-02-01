@@ -21,6 +21,7 @@ find_package(confu_soci)
 find_package(magic_enum)
 find_package(Corrade)
 find_package(durak)
+find_package(modern_durak_game_shared)
 
 
 
@@ -28,6 +29,7 @@ find_package(durak)
 target_link_libraries(example_of_a_game_server PUBLIC
         sml::sml
         durak_computer_controlled_opponent::durak_computer_controlled_opponent
+        modern_durak_game_shared::modern_durak_game_shared
         confu_json::confu_json
         range-v3::range-v3
         confu_soci::confu_soci

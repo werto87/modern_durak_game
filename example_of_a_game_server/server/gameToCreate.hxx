@@ -2,7 +2,7 @@
 #define C8BDF7DD_992C_419F_968A_70034261F4D4
 
 #include "myWebsocket.hxx"
-#include "util/serialization.hxx"
+#include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include "user.hxx"
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>

@@ -1,5 +1,5 @@
 #include "util.hxx"
-#include "util/serialization.hxx"
+#include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include <durak/game.hxx>
 #include <durak/gameData.hxx>
 #include <map>

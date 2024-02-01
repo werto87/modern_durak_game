@@ -20,7 +20,9 @@ class Project(ConanFile):
         self.requires("durak_computer_controlled_opponent/0.0.16")
         self.requires("confu_soci/0.3.15")
         self.requires("corrade/2020.06")
-        self.requires("pipes/1.0.0")
         self.requires("durak/1.0.0")
+        self.requires("modern_durak_game_shared/latest")
+
+
 
 

@@ -1,6 +1,6 @@
 #include "server.hxx"
 #include "boost/asio/experimental/awaitable_operators.hpp"
-#include "util/serialization.hxx"
+#include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include "util/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio/io_context.hpp>

@@ -1,5 +1,4 @@
 #include "example_of_a_game_server/server/server.hxx"
-#include "example_of_a_game_server/util/serialization.hxx"
 #include "example_of_a_game_server/util/util.hxx"
 #include "mockserver.hxx"
 #include "test/constant.hxx"
