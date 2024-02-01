@@ -60,7 +60,7 @@ struct Mockserver
             co_await connection->async_accept ();
             websockets.emplace_back (MyWebsocket<Websocket>{ std::move (connection), loggingName_, loggingTextStyleForName_, id_ });
             std::list<MyWebsocket<Websocket> >::iterator websocket = std::prev (websockets.end ());
-            boost::asio::co_spawn (executor, websocket->readLoop ([&websockets = websockets, websocket, &mockserverOption = mockserverOption, &ioContext = ioContext] (const std::string &msg) mutable {
+            boost::asio::co_spawn (executor, websocket->readLoop ([websocket, &mockserverOption = mockserverOption, &ioContext = ioContext] (const std::string &msg) mutable {
               if (mockserverOption.disconnectOnMessage && mockserverOption.disconnectOnMessage.value () == msg)
                 {
                   ioContext.stop ();

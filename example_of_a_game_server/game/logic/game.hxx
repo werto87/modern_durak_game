@@ -3,7 +3,10 @@
 
 #include <filesystem>
 #include <boost/asio/any_io_executor.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include <boost/asio/ip/tcp.hpp>
+#pragma GCC diagnostic pop
 #include <boost/optional/optional.hpp>
 #include <deque>
 #include <durak/game.hxx>
@@ -15,6 +18,9 @@ namespace boost::asio
 {
 class io_context;
 }
+
+
+
 
 namespace matchmaking_game
 {

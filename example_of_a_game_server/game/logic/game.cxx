@@ -308,7 +308,7 @@ auto const handleGameOver = [](boost::optional<durak::Player> const &durak, Game
              printException);
 };
 
-inline void
+void
 removeUserFromGame(std::string const &userToRemove, GameDependencies &gameDependencies) {
     if (not gameDependencies.game.checkIfGameIsOver()) {
         gameDependencies.game.removePlayer(userToRemove);
@@ -316,7 +316,7 @@ removeUserFromGame(std::string const &userToRemove, GameDependencies &gameDepend
     }
 }
 
-boost::asio::awaitable<void> inline
+boost::asio::awaitable<void>
 runTimer(std::shared_ptr<boost::asio::system_timer> timer, std::string const &accountName,
          GameDependencies &gameDependencies) {
     try {
@@ -590,6 +590,8 @@ auto const userLeftGame = [](GameDependencies &gameDependencies,
     ranges::for_each(gameDependencies.users, [](auto const &user_) { user_.timer->cancel(); });
 };
 
+#pragma GCC push_options
+#pragma GCC optimize("O0")
 bool
 hasToMove(durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist,
           auto const &currentState) {
@@ -685,6 +687,7 @@ calcNextMove(std::optional<durak_computer_controlled_opponent::Action> const &ac
         return std::nullopt;
     }
 }
+#pragma GCC pop_options
 
 void
 nextMove(GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser,
