@@ -22,7 +22,7 @@ class Project(ConanFile):
         self.requires("corrade/2020.06")
         self.requires("durak/1.0.0")
         self.requires("modern_durak_game_shared/latest")
-
+        self.requires("modern_durak_game_option/latest")
 
 
 
