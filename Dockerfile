@@ -1,46 +1,26 @@
-FROM archlinux:base-devel
+FROM conanio/gcc13-ubuntu16.04 as CONAN
 
+COPY cmake /home/conan/example_of_a_game_server/cmake
+COPY example_of_a_game_server /home/conan/example_of_a_game_server/example_of_a_game_server
+COPY test /home/conan/example_of_a_game_server/test
+COPY CMakeLists.txt /home/conan/example_of_a_game_server
+COPY conanfile.py /home/conan/example_of_a_game_server
+COPY main.cxx /home/conan/example_of_a_game_server
+COPY ProjectOptions.cmake /home/conan/example_of_a_game_server
 
-COPY . /example_of_a_game_server
+WORKDIR /home/conan/example_of_a_game_server
+#TODO this should be release not debug but there is a linker error "https://stackoverflow.com/questions/77959920/linker-error-defined-in-discarded-section-with-boost-asio-awaitable-operators
+RUN sudo chown -R conan /home/conan  && conan remote add artifactory http://195.128.100.39:8081/artifactory/api/conan/conan-local && conan install . --output-folder=build --settings build_type=Debug  --settings compiler.cppstd=gnu20 --build=missing
 
-RUN pacman-key --init
+WORKDIR /home/conan/example_of_a_game_server/build
 
-RUN pacman -Syu --noconfirm
+#TODO this should be release not debug but there is a linker error "https://stackoverflow.com/questions/77959920/linker-error-defined-in-discarded-section-with-boost-asio-awaitable-operators"
+RUN cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DBUILD_TESTS=True -D CMAKE_BUILD_TYPE=Debug
 
-# use pip here because its recomended way to install conan from the conan team
-RUN pacman -S cmake git python-pip clang libc++ --noconfirm
+RUN cmake --build .
 
-RUN pip install conan
+FROM archlinux:latest
 
-RUN conan profile new default --detect
+COPY --from=CONAN /home/conan/example_of_a_game_server/build/run_server /home/conan/matchmacking_proxy/example_of_a_game_server
 
-WORKDIR /example_of_a_game_server
-
-RUN conan profile new clang
-
-RUN echo -e "[settings]\nos=Linux\narch=x86_64\ncompiler=clang\ncompiler.libcxx=libc++\n[env]\nCC=/usr/bin/clang\nCXX=/usr/bin/clang++" > /root/.conan/profiles/clang
-
-RUN which clang
-
-RUN conan remote add gitlab https://gitlab.com/api/v4/projects/27217743/packages/conan
-# check build parameter there is no libc++ set
-
-RUN rm -rf build && mkdir build && cd build && conan install ..  --profile=clang -s compiler.version=$(clang --version | tr '\n' ' ' | cut -d' ' -f3 | cut -d'.' -f1) --build missing -s build_type=Release  && cmake ..  -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_EXE_LINKER_FLAGS="-std=c++20 -stdlib=libc++ -lc++abi" -DCMAKE_BUILD_TYPE=Release  && cmake --build . ; cd ..
-
-FROM archlinux:base
-
-# RUN pacman -S libc++ --noconfirm
-
-COPY --from=0 /example_of_a_game_server/build/bin/project /example_of_a_game_server/project
-COPY --from=0 /usr/lib/libc++.a /usr/lib/libc++.a
-COPY --from=0 /usr/lib/libc++.so /usr/lib/libc++.so
-COPY --from=0 /usr/lib/libc++.so.1 /usr/lib/libc++.so.1
-COPY --from=0 /usr/lib/libc++.so.1.0 /usr/lib/libc++.so.1.0
-COPY --from=0 /usr/lib/libc++abi.a      /usr/lib/libc++abi.a
-COPY --from=0 /usr/lib/libc++abi.so     /usr/lib/libc++abi.so
-COPY --from=0 /usr/lib/libc++abi.so.1   /usr/lib/libc++abi.so.1
-COPY --from=0 /usr/lib/libc++abi.so.1.0 /usr/lib/libc++abi.so.1.0
-
-
-
-CMD [ "/example_of_a_game_server/project"]
+CMD [ "/home/conan/matchmacking_proxy/example_of_a_game_server"]

@@ -43,12 +43,6 @@ target_link_libraries(example_of_a_game_server PUBLIC
 
 target_compile_features(example_of_a_game_server PUBLIC cxx_std_20)
 
-set_target_properties(
-        example_of_a_game_server
-        PROPERTIES VERSION ${PROJECT_VERSION}
-        CXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN YES)
-
 add_subdirectory(game)
 add_subdirectory(server)
 add_subdirectory(util)

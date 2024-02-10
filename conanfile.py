@@ -17,10 +17,10 @@ class Project(ConanFile):
         self.requires("confu_json/1.0.1")
         self.requires("range-v3/0.12.0")
         self.requires("sml/1.1.5")
-        self.requires("durak_computer_controlled_opponent/0.0.16")
-        self.requires("confu_soci/0.3.15")
+        self.requires("durak_computer_controlled_opponent/0.0.19")
+        self.requires("confu_soci/0.3.20")
         self.requires("corrade/2020.06")
-        self.requires("durak/1.0.0")
+        self.requires("durak/1.0.3" , force=True)
         self.requires("modern_durak_game_shared/latest")
         self.requires("modern_durak_game_option/latest")
 
