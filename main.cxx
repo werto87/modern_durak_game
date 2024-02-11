@@ -15,7 +15,7 @@ auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = std::string { "3232" };
 auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = std::string { "4242" };
 auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = std::string { "12312" };
 auto const DEFAULT_ADDRESS_OF_MATCHMAKING = std::string { "127.0.0.1" };
-auto const DEFAULT_DATABASE_PATH = std::string { CURRENT_BINARY_DIR } + "/database/combination.db";
+auto const DEFAULT_DATABASE_PATH = std::string { CURRENT_BINARY_DIR } + "/combination.db";
 
 int
 main (int argc, char **argv)
@@ -33,10 +33,9 @@ main (int argc, char **argv)
   // clang-format on
   using namespace durak_computer_controlled_opponent;
   std::string DATABASE_PATH = args.value ("path-to-database");
-  createCombinationDatabase (DEFAULT_DATABASE_PATH);
   if (not std::filesystem::exists (DATABASE_PATH))
     {
-      std::cout << "please provide path to combination database (combintaion.db) or run create_combination_database to create combination.db" << std::endl;
+      std::cerr << "combination.db not found at: '" + DATABASE_PATH + "' please provide it or create it by running create_combination_database executable. Consider building create_combination_database in release mode it is around 15 times faster than debug." << std::endl;
       std::terminate ();
     }
   else
