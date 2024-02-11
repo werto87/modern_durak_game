@@ -25,8 +25,6 @@ find_package(modern_durak_game_shared)
 find_package(modern_durak_game_option)
 
 
-
-
 target_link_libraries(example_of_a_game_server PUBLIC
         sml::sml
         durak_computer_controlled_opponent::durak_computer_controlled_opponent
@@ -50,5 +48,5 @@ add_subdirectory(util)
 
 target_include_directories(example_of_a_game_server
         PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
         )

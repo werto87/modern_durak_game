@@ -1,16 +1,13 @@
 #ifndef EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1
 #define EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1
-#include "confu_json/confu_json.hxx"
-#include "game/logic/allowedMoves.hxx"
-#include "server/user.hxx"
+#include <confu_json/confu_json.hxx>
 #include <confu_json/util.hxx>
-#include <durak/game.hxx>
-#include <durak/gameData.hxx>
+#include <filesystem>
 template <typename TypeToSend>
 std::string
 objectToStringWithObjectName (TypeToSend const &typeToSend)
 {
-  std::stringstream ss{};
+  std::stringstream ss {};
   ss << confu_json::type_name<TypeToSend> () << '|' << confu_json::to_json (typeToSend);
   return ss.str ();
 }
@@ -19,8 +16,8 @@ template <typename T>
 T
 stringToObject (std::string const &objectAsString)
 {
-  T t{};
-  boost::json::error_code ec{};
+  T t {};
+  boost::json::error_code ec {};
   try
     {
       auto jsonValue = confu_json::read_json (objectAsString, ec);
@@ -37,7 +34,7 @@ stringToObject (std::string const &objectAsString)
   catch (...)
     {
       std::cout << "confu_json::read_json exception. Trying to parse '" << confu_json::type_name<T> () << "'. Trying to transform message: '" << objectAsString << "'" << std::endl;
-      std::cout << "example json for '" << confu_json::type_name<T> () << confu_json::type_name<T> () << "': '" << objectToStringWithObjectName (T{}) << "'" << std::endl;
+      std::cout << "example json for '" << confu_json::type_name<T> () << confu_json::type_name<T> () << "': '" << objectToStringWithObjectName (T {}) << "'" << std::endl;
       throw;
     }
 
@@ -59,6 +56,8 @@ auto const printException1 = [] (std::exception_ptr eptr) { printExceptionHelper
 
 auto const printException2 = [] (std::exception_ptr eptr, auto) { printExceptionHelper (eptr); };
 
-auto const printException = overloaded{ printException1, printException2 };
+auto const printException = overloaded { printException1, printException2 };
+
+void createCombinationDatabase (std::filesystem::path const &databasePath);
 
 #endif /* EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1 */

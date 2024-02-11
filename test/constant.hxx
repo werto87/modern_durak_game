@@ -4,7 +4,7 @@
 
 auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = 3232;
 auto const DEFAULT_PORT_MATCHMAKING_TO_GAME = 4242;
-auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = std::string{ "12312" };
-auto const DEFAULT_ADDRESS_OF_MATCHMAKING = std::string{ "127.0.0.1" };
-auto const DEFAULT_DATABASE_PATH = std::string{ CURRENT_BINARY_DIR } + "/test_database/combination.db";
+auto const DEFAULT_PORT_GAME_TO_MATCHMAKING = std::string { "12312" };
+auto const DEFAULT_ADDRESS_OF_MATCHMAKING = std::string { "127.0.0.1" };
+auto const DEFAULT_DATABASE_PATH = std::string { PATH_TO_DATABASE_TEST };
 #endif /* FE334B5B_FA67_454D_A6F5_A1CBF7D02BB7 */
