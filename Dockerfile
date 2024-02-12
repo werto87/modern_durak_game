@@ -21,7 +21,7 @@ RUN cmake --build .
 
 RUN ./create_combination_database
 
-RUN test/_test
+RUN test/_test -d yes --order lex
 
 FROM archlinux:latest
 
