@@ -28,3 +28,5 @@ FROM archlinux:latest
 COPY --from=BUILD /home/build_user/example_of_a_game_server/build/run_server /home/build_user/example_of_a_game_server/example_of_a_game_server
 
 COPY --from=BUILD /home/build_user/example_of_a_game_server/test/database/combination.db /home/build_user/example_of_a_game_server/build/combination.db
+
+CMD [ "/home/build_user/example_of_a_game_server/example_of_a_game_server" ]
