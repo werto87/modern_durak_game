@@ -1,9 +1,14 @@
 from conan import ConanFile
-
+from conan.tools.cmake import CMakeToolchain
 
 class Project(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeToolchain", "CMakeDeps"
+    generators =  "CMakeDeps"
+
+    def generate(self):
+        tc = CMakeToolchain(self)
+        tc.user_presets_path = False #workaround because this leads to useless options in cmake-tools configure
+        tc.generate()
 
     def configure(self):
         self.options["catch2"].with_benchmark = True
@@ -13,12 +18,12 @@ class Project(ConanFile):
         self.requires("catch2/2.13.7")
         self.requires("magic_enum/[>=0.9.5 <10]")
         self.requires("boost/1.84.0")
-        self.requires("confu_json/1.0.1")
+        self.requires("confu_json/[>=1.0.2 <2]")
         self.requires("range-v3/0.12.0")
         self.requires("sml/1.1.5")
-        self.requires("durak_computer_controlled_opponent/0.0.19")
+        self.requires("durak_computer_controlled_opponent/0.0.20")
         self.requires("confu_soci/0.3.20")
         self.requires("corrade/2020.06")
-        self.requires("durak/1.0.3", force=True)
+        self.requires("durak/1.0.5", force=True)
         self.requires("modern_durak_game_shared/latest")
         self.requires("modern_durak_game_option/latest")
