@@ -8,7 +8,6 @@
 #include <memory>
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include <optional>
-#include <range/v3/algorithm/find_if.hpp>
 
 using namespace boost::beast;
 using namespace boost::asio;
@@ -88,14 +87,14 @@ playNextMove (std::string const &id, std::string const &gameName, std::list<Game
         auto const &objectAsString = splitMessage.at (1);
         if (typeToSearch == confu_json::type_name<shared_class::DurakAllowedMoves> () and not stringToObject<shared_class::DurakAllowedMoves> (objectAsString).allowedMoves.empty ())
           {
-            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+            if (auto gameWithPlayer = std::ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
               {
                 gameWithPlayer->processEvent (objectToStringWithObjectName (shared_class::DurakNextMove {}), id);
               }
           }
         else if (typeToSearch == confu_json::type_name<shared_class::DurakNextMoveSuccess> ())
           {
-            if (auto gameWithPlayer = ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
+            if (auto gameWithPlayer = std::ranges::find (games, gameName, &Game::gameName); gameWithPlayer != games.end ())
               {
                 playSuggestedMove (stringToObject<shared_class::DurakNextMoveSuccess> (objectAsString), *gameWithPlayer, id);
               }
@@ -134,7 +133,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                 if (typeToSearch == "ConnectToGame")
                   {
                     auto connectToGame = stringToObject<matchmaking_game::ConnectToGame> (objectAsString);
-                    if (auto gameToCreate = ranges::find (gamesToCreate, connectToGame.gameName, [] (GameToCreate const &_gameToCreate) { return _gameToCreate.gameName; }); gameToCreate != gamesToCreate.end ())
+                    if (auto gameToCreate = std::ranges::find (gamesToCreate, connectToGame.gameName, [] (GameToCreate const &_gameToCreate) { return _gameToCreate.gameName; }); gameToCreate != gamesToCreate.end ())
                       {
                         if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &_msg) { myWebsocket->sendMessage (_msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
                           {
@@ -148,8 +147,8 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                         if (gameToCreate->allUsersConnected ())
                           {
                             auto computerControlledPlayerNames = std::vector<std::string> (gameToCreate->startGame.gameOption.computerControlledPlayerCount);
-                            ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
-                            ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &games = games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
+                            std::ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
+                            std::ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &games = games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
                             auto &game = games.emplace_back (Game { gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             game.startGame ();
                             gamesToCreate.erase (gameToCreate);
@@ -162,7 +161,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                   }
                 else if (accountName && accountName->has_value ())
                   {
-                    if (auto game = ranges::find_if (games, [&accountName] (Game const &_game) { return _game.isUserInGame (accountName->value ()); }); game != games.end ())
+                    if (auto game = std::ranges::find_if (games, [&accountName] (Game const &_game) { return _game.isUserInGame (accountName->value ()); }); game != games.end ())
                       {
                         if (auto const &error = game->processEvent (msg, accountName->value ()))
                           {
@@ -194,7 +193,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                       printException (eptr);
                       if (accountName && accountName->has_value ())
                         {
-                          if (auto gameItr = ranges::find_if (games, [accountName] (Game &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != games.end ())
+                          if (auto gameItr = std::ranges::find_if (games, [accountName] (Game &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != games.end ())
                             {
                               gameItr->removeUser (accountName->value ());
                               if (gameItr->usersInGame () == 0)
