@@ -353,7 +353,7 @@ TEST_CASE ("play the game", "[game]")
   auto computerControlledPlayerNames = std::vector<std::string>{ "a", "b" };
   std::list<Game> games{};
   auto gameOver = false;
-  ranges::for_each (computerControlledPlayerNames, [&gameOver, gameName, &games = games, &users, &ioContext] (auto const &id) {
+  std::ranges::for_each (computerControlledPlayerNames, [&gameOver, gameName, &games = games, &users, &ioContext] (auto const &id) {
     users.push_back ({ id,
                        [&gameOver, id, gameName, &games = games, &ioContext] (auto const &msg) {
                          if (boost::starts_with (msg, "DurakGameOverWon") or boost::starts_with (msg, "DurakGameOverDraw"))
