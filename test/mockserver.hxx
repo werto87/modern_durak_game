@@ -60,17 +60,17 @@ struct Mockserver
             co_await connection->async_accept ();
             websockets.emplace_back (MyWebsocket<Websocket>{ std::move (connection), loggingName_, loggingTextStyleForName_, id_ });
             std::list<MyWebsocket<Websocket> >::iterator websocket = std::prev (websockets.end ());
-            boost::asio::co_spawn (executor, websocket->readLoop ([websocket, &mockserverOption = mockserverOption, &ioContext = ioContext] (const std::string &msg) mutable {
-              if (mockserverOption.disconnectOnMessage && mockserverOption.disconnectOnMessage.value () == msg)
+            boost::asio::co_spawn (executor, websocket->readLoop ([websocket, &_mockserverOption = mockserverOption, &_ioContext=ioContext] (const std::string &msg) mutable {
+              if (_mockserverOption.disconnectOnMessage && _mockserverOption.disconnectOnMessage.value () == msg)
                 {
-                  ioContext.stop ();
+                  _ioContext.stop ();
                 }
-              else if (mockserverOption.requestResponse.count (msg))
-                websocket->sendMessage (mockserverOption.requestResponse.at (msg));
+              else if (_mockserverOption.requestResponse.count (msg))
+                websocket->sendMessage (_mockserverOption.requestResponse.at (msg));
               else
                 {
                   auto msgFound = false;
-                  for (auto const &[startsWith, response] : mockserverOption.requestStartsWithResponse)
+                  for (auto const &[startsWith, response] : _mockserverOption.requestStartsWithResponse)
                     {
                       if (boost::starts_with (msg, startsWith))
                         {
@@ -85,9 +85,9 @@ struct Mockserver
                     }
                 }
             }) && websocket->writeLoop (),
-                                   [&websockets = websockets, websocket] (auto eptr) {
+                                   [&_websockets = websockets, websocket] (auto eptr) {
                                      printException (eptr);
-                                     websockets.erase (websocket);
+                                     _websockets.erase (websocket);
                                    });
           }
         catch (std::exception const &e)

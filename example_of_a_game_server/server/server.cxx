@@ -120,7 +120,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
           using namespace boost::asio::experimental::awaitable_operators;
           tcp::resolver resolv { ioContext };
           auto resolvedGameToMatchmakingEndpoint = co_await resolv.async_resolve (ip::tcp::v4 (), matchmakingHost, matchmakingPort, use_awaitable);
-          co_spawn (ioContext, myWebsocket->readLoop ([myWebsocket, &games = games, &gamesToCreate = gamesToCreate, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (std::string const &msg) mutable {
+          co_spawn (ioContext, myWebsocket->readLoop ([myWebsocket, &_games = games, &_gamesToCreate = gamesToCreate, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (std::string const &msg) mutable {
             std::vector<std::string> splitMessage {};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -130,7 +130,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                 if (typeToSearch == "ConnectToGame")
                   {
                     auto connectToGame = stringToObject<matchmaking_game::ConnectToGame> (objectAsString);
-                    if (auto gameToCreate = std::ranges::find (gamesToCreate, connectToGame.gameName, [] (GameToCreate const &_gameToCreate) { return _gameToCreate.gameName; }); gameToCreate != gamesToCreate.end ())
+                    if (auto gameToCreate = std::ranges::find (_gamesToCreate, connectToGame.gameName, [] (GameToCreate const &gameToCreate_) { return gameToCreate_.gameName; }); gameToCreate != _gamesToCreate.end ())
                       {
                         if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &_msg) { myWebsocket->sendMessage (_msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
                           {
@@ -145,10 +145,10 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           {
                             auto computerControlledPlayerNames = std::vector<std::string> (gameToCreate->startGame.gameOption.computerControlledPlayerCount);
                             std::ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
-                            std::ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &games = games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &games = games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
-                            auto &game = games.emplace_back (Game { gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
+                            std::ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &_games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &_games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, _games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
+                            auto &game = _games.emplace_back (Game { gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
                             game.startGame ();
-                            gamesToCreate.erase (gameToCreate);
+                            _gamesToCreate.erase (gameToCreate);
                           }
                       }
                     else
@@ -158,7 +158,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                   }
                 else if (accountName && accountName->has_value ())
                   {
-                    if (auto game = std::ranges::find_if (games, [&accountName] (Game const &_game) { return _game.isUserInGame (accountName->value ()); }); game != games.end ())
+                    if (auto game = std::ranges::find_if (_games, [&accountName] (Game const &_game) { return _game.isUserInGame (accountName->value ()); }); game != _games.end ())
                       {
                         if (auto const &error = game->processEvent (msg, accountName->value ()))
                           {
@@ -186,16 +186,16 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                   }
               }
           }) && myWebsocket->writeLoop (),
-                    [&games = games, accountName] (auto eptr) {
+                    [&_games = games, accountName] (auto eptr) {
                       printException (eptr);
                       if (accountName && accountName->has_value ())
                         {
-                          if (auto gameItr = std::ranges::find_if (games, [accountName] (Game &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != games.end ())
+                          if (auto gameItr = std::ranges::find_if (_games, [accountName] (Game &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != _games.end ())
                             {
                               gameItr->removeUser (accountName->value ());
                               if (gameItr->usersInGame () == 0)
                                 {
-                                  games.erase (gameItr);
+                                  _games.erase (gameItr);
                                 }
                             }
                           else
@@ -233,7 +233,7 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
           static size_t id = 0;
           auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket> { connection, "MatchmakingToGame", fmt::fg (fmt::color::blue_violet), std::to_string (id++) });
           using namespace boost::asio::experimental::awaitable_operators;
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &gamesToCreate = gamesToCreate] (std::string const &msg) {
+          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &_gamesToCreate = gamesToCreate] (std::string const &msg) {
             std::vector<std::string> splitMessage {};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -243,7 +243,7 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
                 if (typeToSearch == "StartGame")
                   {
                     // TODO this should be create game success and not start game success because game is not started it is waiting for user
-                    auto &gameToCreate = gamesToCreate.emplace_back (stringToObject<matchmaking_game::StartGame> (objectAsString));
+                    auto &gameToCreate = _gamesToCreate.emplace_back (stringToObject<matchmaking_game::StartGame> (objectAsString));
                     myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess { gameToCreate.gameName }));
                   }
                 else
