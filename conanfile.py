@@ -19,7 +19,6 @@ class Project(ConanFile):
         self.requires("magic_enum/[>=0.9.5 <10]")
         self.requires("boost/1.84.0")
         self.requires("confu_json/[>=1.0.2 <2]")
-        self.requires("range-v3/0.12.0")
         self.requires("sml/1.1.5")
         self.requires("durak_computer_controlled_opponent/0.0.20")
         self.requires("confu_soci/0.3.20")

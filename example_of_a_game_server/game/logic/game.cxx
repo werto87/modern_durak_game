@@ -35,18 +35,6 @@
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include <optional>
 #include <queue>
-#include <range/v3/action/erase.hpp>
-#include <range/v3/algorithm/find.hpp>
-#include <range/v3/algorithm/find_if.hpp>
-#include <range/v3/algorithm/for_each.hpp>
-#include <range/v3/algorithm/remove.hpp>
-#include <range/v3/algorithm/transform.hpp>
-#include <range/v3/all.hpp>
-#include <range/v3/iterator/insert_iterators.hpp>
-#include <range/v3/numeric/accumulate.hpp>
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -129,9 +117,9 @@ durak::GameData
 filterGameDataByAccountName (durak::GameData const &gameData, std::string const &accountName)
 {
   auto filteredGameData = gameData;
-  for (auto &player : filteredGameData.players | ranges::views::filter ([&accountName] (auto const &player) { return player.name != accountName; }))
+  for (auto &player : filteredGameData.players | std::ranges::views::filter ([&accountName] (auto const &player) { return player.name != accountName; }))
     {
-      ranges::transform (player.cards, player.cards.begin (), [] (boost::optional<durak::Card> const &) { return boost::optional<durak::Card> {}; });
+      std::ranges::transform (player.cards, player.cards.begin (), [] (boost::optional<durak::Card> const &) { return boost::optional<durak::Card> {}; });
     }
   return filteredGameData;
 }
@@ -143,7 +131,7 @@ calculateAllowedMoves (durak::Game const &game, durak::PlayerRole playerRole)
 {
   auto result = std::vector<shared_class::Move> {};
   auto durakAllowedMoves = game.getAllowedMoves (playerRole);
-  ranges::transform (durakAllowedMoves, ranges::back_inserter (result), [] (auto move) { return moveMapping.at (move); });
+  std::ranges::transform (durakAllowedMoves, std::back_inserter (result), [] (auto move) { return moveMapping.at (move); });
   return result;
 }
 
@@ -151,7 +139,7 @@ std::vector<shared_class::Move>
 calculateAllowedMovesWithPassState (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist)
 {
   auto allowedMoves = calculateAllowedMoves (game, playerRole);
-  if (auto takeCards = ranges::find (allowedMoves, shared_class::Move::TakeCards); takeCards != allowedMoves.end () and ranges::find (allowedMoves, shared_class::Move::Defend) == allowedMoves.end () and playerRole == durak::PlayerRole::defend and passAttackAndAssist.attack and passAttackAndAssist.assist)
+  if (auto takeCards = std::ranges::find (allowedMoves, shared_class::Move::TakeCards); takeCards != allowedMoves.end () and std::ranges::find (allowedMoves, shared_class::Move::Defend) == allowedMoves.end () and playerRole == durak::PlayerRole::defend and passAttackAndAssist.attack and passAttackAndAssist.assist)
     {
       allowedMoves.erase (takeCards);
       allowedMoves.emplace_back (shared_class::Move::AnswerDefendWantsToTakeCardsYes);
@@ -167,9 +155,9 @@ calcAllowedMoves (durak::Game const &game, durak::PlayerRole playerRole, std::op
   if (addToAllowedMoves && not addToAllowedMoves->empty ())
     {
       allowedMoves.allowedMoves.insert (allowedMoves.allowedMoves.end (), addToAllowedMoves.value ().begin (), addToAllowedMoves.value ().end ());
-      ranges::sort (allowedMoves.allowedMoves);
+      std::ranges::sort (allowedMoves.allowedMoves);
       auto result = shared_class::DurakAllowedMoves {};
-      ranges::unique_copy (allowedMoves.allowedMoves, ranges::back_inserter (result.allowedMoves));
+      std::ranges::unique_copy (allowedMoves.allowedMoves, std::back_inserter (result.allowedMoves));
       return result;
     }
   else
@@ -183,21 +171,21 @@ sendAvailableMoves (durak::Game const &game, std::list<User> const &users, Allow
 {
   if (auto attackingPlayer = game.getAttackingPlayer ())
     {
-      if (auto attackingUser = ranges::find_if (users, [attackingPlayerName = attackingPlayer->id] (User const &user) { return user.accountName == attackingPlayerName; }); attackingUser != users.end ())
+      if (auto attackingUser = std::ranges::find_if (users, [attackingPlayerName = attackingPlayer->id] (User const &user) { return user.accountName == attackingPlayerName; }); attackingUser != users.end ())
         {
           attackingUser->sendMsgToUser (objectToStringWithObjectName (calcAllowedMoves (game, durak::PlayerRole::attack, removeFromAllowedMoves.attack, addToAllowedMoves.attack)));
         }
     }
   if (auto assistingPlayer = game.getAssistingPlayer ())
     {
-      if (auto assistingUser = ranges::find_if (users, [assistingPlayerName = assistingPlayer->id] (User const &user) { return user.accountName == assistingPlayerName; }); assistingUser != users.end ())
+      if (auto assistingUser = std::ranges::find_if (users, [assistingPlayerName = assistingPlayer->id] (User const &user) { return user.accountName == assistingPlayerName; }); assistingUser != users.end ())
         {
           assistingUser->sendMsgToUser (objectToStringWithObjectName (calcAllowedMoves (game, durak::PlayerRole::assistAttacker, removeFromAllowedMoves.assist, addToAllowedMoves.assist)));
         }
     }
   if (auto defendingPlayer = game.getDefendingPlayer ())
     {
-      if (auto defendingUser = ranges::find_if (users, [defendingPlayerName = defendingPlayer->id] (User const &user) { return user.accountName == defendingPlayerName; }); defendingUser != users.end ())
+      if (auto defendingUser = std::ranges::find_if (users, [defendingPlayerName = defendingPlayer->id] (User const &user) { return user.accountName == defendingPlayerName; }); defendingUser != users.end ())
         {
           defendingUser->sendMsgToUser (objectToStringWithObjectName (calcAllowedMoves (game, durak::PlayerRole::defend, removeFromAllowedMoves.defend, addToAllowedMoves.defend)));
         }
@@ -208,8 +196,8 @@ void
 sendGameDataToAccountsInGame (durak::Game const &game, std::list<User> const &users, shared_class::OpponentCards opponentCards)
 {
   auto gameData = game.getGameData ();
-  ranges::for_each (gameData.players, [] (auto &player) { ranges::sort (player.cards, [] (auto const &card1, auto const &card2) { return card1.value () < card2.value (); }); });
-  ranges::for_each (users, [&gameData, opponentCards] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (opponentCards == shared_class::OpponentCards::showNumberOfOpponentCards ? filterGameDataByAccountName (gameData, user.accountName) : gameData)); });
+  std::ranges::for_each (gameData.players, [] (auto &player) { std::ranges::sort (player.cards, [] (auto const &card1, auto const &card2) { return card1.value () < card2.value (); }); });
+  std::ranges::for_each (users, [&gameData, opponentCards] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (opponentCards == shared_class::OpponentCards::showNumberOfOpponentCards ? filterGameDataByAccountName (gameData, user.accountName) : gameData)); });
 }
 
 using namespace boost::sml;
@@ -268,7 +256,7 @@ sendGameOverToMatchmaking (matchmaking_game::GameOver gameOver, GameDependencies
     {
       std::cout << "Game server answered with: '" << msg << "' expected GameOverSuccess|{} or GameOverError|{} " << std::endl;
     }
-  ranges::for_each (gameDependencies.users, [] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::LeaveGameSuccess {})); });
+  std::ranges::for_each (gameDependencies.users, [] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::LeaveGameSuccess {})); });
 }
 
 auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, GameDependencies &gameDependencies) {
@@ -277,7 +265,7 @@ auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, Gam
   auto draws = std::vector<std::string> {};
   if (durak)
     {
-      ranges::for_each (gameDependencies.users, [durak = durak->id, &winners, &losers] (User &user) {
+      std::ranges::for_each (gameDependencies.users, [durak = durak->id, &winners, &losers] (User &user) {
         if (user.accountName == durak)
           {
             user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakGameOverLose {}));
@@ -292,7 +280,7 @@ auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, Gam
     }
   else
     {
-      ranges::for_each (gameDependencies.users, [&draws] (auto &user) {
+      std::ranges::for_each (gameDependencies.users, [&draws] (auto &user) {
         user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakGameOverDraw {}));
         draws.push_back (user.accountName);
       });
@@ -318,7 +306,7 @@ runTimer (std::shared_ptr<boost::asio::system_timer> timer, std::string const &a
     {
       co_await timer->async_wait (boost::asio::use_awaitable);
       removeUserFromGame (accountName, gameDependencies);
-      ranges::for_each (gameDependencies.users, [] (auto const &_user) { _user.timer->cancel (); });
+      std::ranges::for_each (gameDependencies.users, [] (auto const &_user) { _user.timer->cancel (); });
     }
   catch (boost::system::system_error &e)
     {
@@ -339,7 +327,7 @@ auto const sendTimer = [] (GameDependencies &gameDependencies) {
   if (gameDependencies.timerOption.timerType != shared_class::TimerType::noTimer)
     {
       auto durakTimers = shared_class::DurakTimers {};
-      ranges::for_each (gameDependencies.users, [&durakTimers] (User const &user) {
+      std::ranges::for_each (gameDependencies.users, [&durakTimers] (User const &user) {
         if (user.pausedTime)
           {
             durakTimers.pausedTimeUserDurationMilliseconds.push_back (std::make_pair (user.accountName, user.pausedTime->count ()));
@@ -350,13 +338,13 @@ auto const sendTimer = [] (GameDependencies &gameDependencies) {
             durakTimers.runningTimeUserTimePointMilliseconds.push_back (std::make_pair (user.accountName, duration_cast<milliseconds> (user.timer->expiry ().time_since_epoch ()).count ()));
           }
       });
-      ranges::for_each (gameDependencies.users, [&durakTimers] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (durakTimers)); });
+      std::ranges::for_each (gameDependencies.users, [&durakTimers] (User const &user) { user.sendMsgToUser (objectToStringWithObjectName (durakTimers)); });
     }
 };
 
 auto const initTimerHandler = [] (GameDependencies &gameDependencies, boost::sml::back::process<resumeTimer> process_event) {
   using namespace std::chrono;
-  ranges::for_each (gameDependencies.users, [&gameDependencies] (auto &user) { user.pausedTime = gameDependencies.timerOption.timeAtStart; });
+  std::ranges::for_each (gameDependencies.users, [&gameDependencies] (auto &user) { user.pausedTime = gameDependencies.timerOption.timeAtStart; });
   if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer ())
     {
       process_event (resumeTimer { { attackingPlayer->id } });
@@ -364,9 +352,9 @@ auto const initTimerHandler = [] (GameDependencies &gameDependencies, boost::sml
 };
 
 auto const pauseTimerHandler = [] (GameDependencies &gameDependencies, pauseTimer const &pauseTimerEv) {
-  ranges::for_each (gameDependencies.users, [&playersToPausetime = pauseTimerEv.playersToPause] (auto &user) {
+  std::ranges::for_each (gameDependencies.users, [&playersToPausetime = pauseTimerEv.playersToPause] (auto &user) {
     using namespace std::chrono;
-    if (ranges::find (playersToPausetime, user.accountName) != playersToPausetime.end ())
+    if ( std::ranges::find (playersToPausetime, user.accountName) != playersToPausetime.end ())
       {
         user.pausedTime = duration_cast<milliseconds> (user.timer->expiry () - system_clock::now ());
         user.timer->cancel ();
@@ -376,7 +364,7 @@ auto const pauseTimerHandler = [] (GameDependencies &gameDependencies, pauseTime
 
 auto const nextRoundTimerHandler = [] (GameDependencies &gameDependencies, boost::sml::back::process<resumeTimer, sendTimerEv> process_event) {
   using namespace std::chrono;
-  ranges::for_each (gameDependencies.users, [&timerOption = gameDependencies.timerOption] (auto &user) {
+  std::ranges::for_each (gameDependencies.users, [&timerOption = gameDependencies.timerOption] (auto &user) {
     if (timerOption.timerType == shared_class::TimerType::addTimeOnNewRound)
       {
         user.pausedTime = timerOption.timeForEachRound + duration_cast<milliseconds> (user.timer->expiry () - system_clock::now ());
@@ -395,7 +383,7 @@ auto const nextRoundTimerHandler = [] (GameDependencies &gameDependencies, boost
 };
 
 auto const userReloggedInChillState = [] (GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
-  if (auto user = ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &_user) { return _user.accountName == userName; }); user != gameDependencies.users.end ())
+  if (auto user = std::ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &_user) { return _user.accountName == userName; }); user != gameDependencies.users.end ())
     {
       user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves { calculateAllowedMoves (gameDependencies.game, gameDependencies.game.getRoleForName (userReloggedEv.accountName)) }));
     }
@@ -404,7 +392,7 @@ auto const userReloggedInChillState = [] (GameDependencies &gameDependencies, us
 auto const userReloggedInAskDef = [] (GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
   if (gameDependencies.game.getRoleForName (userReloggedEv.accountName) == durak::PlayerRole::defend)
     {
-      if (auto user = ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &_user) { return _user.accountName == userName; }); user != gameDependencies.users.end ())
+      if (auto user = std::ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &_user) { return _user.accountName == userName; }); user != gameDependencies.users.end ())
         {
           user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves { { shared_class::Move::AnswerDefendWantsToTakeCardsYes, shared_class::Move::AnswerDefendWantsToTakeCardsNo } }));
         }
@@ -413,7 +401,7 @@ auto const userReloggedInAskDef = [] (GameDependencies &gameDependencies, userRe
 
 auto const defendsWantsToTakeCardsSendMovesToAttackOrAssist = [] (durak::Game &game, durak::PlayerRole playerRole, User &user) {
   auto allowedMoves = calculateAllowedMoves (game, playerRole);
-  if (ranges::find_if (allowedMoves, [] (auto allowedMove) { return allowedMove == shared_class::Move::AddCards; }) != allowedMoves.end ())
+  if ( std::ranges::find_if (allowedMoves, [] (auto allowedMove) { return allowedMove == shared_class::Move::AddCards; }) != allowedMoves.end ())
     {
       user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves { { shared_class::Move::AttackAssistDoneAddingCards, shared_class::Move::AddCards } }));
     }
@@ -424,7 +412,7 @@ auto const defendsWantsToTakeCardsSendMovesToAttackOrAssist = [] (durak::Game &g
 };
 
 auto const userReloggedInAskAttackAssist = [] (GameDependencies &gameDependencies, userRelogged const &userReloggedEv) {
-  if (auto user = ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &_user) { return _user.accountName == userName; }); user != gameDependencies.users.end ())
+  if (auto user = std::ranges::find_if (gameDependencies.users, [userName = userReloggedEv.accountName] (auto const &_user) { return _user.accountName == userName; }); user != gameDependencies.users.end ())
     {
       if ((not gameDependencies.passAttackAndAssist.assist && gameDependencies.game.getRoleForName (userReloggedEv.accountName) == durak::PlayerRole::assistAttacker) || (not gameDependencies.passAttackAndAssist.attack && gameDependencies.game.getRoleForName (userReloggedEv.accountName) == durak::PlayerRole::attack))
         {
@@ -439,8 +427,8 @@ auto const roundStart = [] (GameDependencies &gameDependencies) {
 };
 
 auto const resumeTimerHandler = [] (GameDependencies &gameDependencies, resumeTimer const &resumeTimerEv) {
-  ranges::for_each (gameDependencies.users, [playersToResume = resumeTimerEv.playersToResume, &gameDependencies] (User &user) {
-    if (ranges::find (playersToResume, user.accountName) != playersToResume.end ())
+  std::ranges::for_each (gameDependencies.users, [playersToResume = resumeTimerEv.playersToResume, &gameDependencies] (User &user) {
+    if ( std::ranges::find (playersToResume, user.accountName) != playersToResume.end ())
       {
         if (user.pausedTime)
           {
@@ -554,7 +542,7 @@ auto const startAskDef = [] (GameDependencies &gameDependencies, boost::sml::bac
   if (auto defendingPlayer = gameDependencies.game.getDefendingPlayer ())
     {
       process_event (resumeTimer { { defendingPlayer->id } });
-      if (auto user = ranges::find_if (gameDependencies.users, [&defendingPlayer] (auto const &_user) { return _user.accountName == defendingPlayer->id; }); user != gameDependencies.users.end ())
+      if (auto user = std::ranges::find_if (gameDependencies.users, [&defendingPlayer] (auto const &_user) { return _user.accountName == defendingPlayer->id; }); user != gameDependencies.users.end ())
         {
           user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCards {}));
           user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves { { shared_class::Move::AnswerDefendWantsToTakeCardsYes, shared_class::Move::AnswerDefendWantsToTakeCardsNo } }));
@@ -575,11 +563,10 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   // TODO i think this should be auto &[event, user] = leaveGameEventUser; in all places where this construct is used
   auto [event, user] = leaveGameEventUser;
   removeUserFromGame (user.accountName, gameDependencies);
-  ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
+  std::ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
 };
 
-#pragma GCC push_options
-#pragma GCC optimize("O0")
+
 bool
 hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, auto const &currentState)
 {
@@ -637,9 +624,9 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
     {
       if (action.has_value ())
         {
-          if (ranges::find (moves, shared_class::Move::AddCards) != moves.end ())
+          if ( std::ranges::find (moves, shared_class::Move::AddCards) != moves.end ())
             {
-              if (auto idCard = ranges::find_if (attackIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != attackIdCardMapping.end ())
+              if (auto idCard = std::ranges::find_if (attackIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != attackIdCardMapping.end ())
                 {
                   return shared_class::DurakNextMoveSuccess { shared_class::Move::AddCards, std::get<1> (*idCard) };
                 }
@@ -682,9 +669,9 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::TakeCards, std::nullopt };
         }
-      else if (action and ranges::find (moves, shared_class::Move::Defend) != moves.end ())
+      else if (action and std::ranges::find (moves, shared_class::Move::Defend) != moves.end ())
         {
-          if (auto idCard = ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != defendIdCardMapping.end ())
+          if (auto idCard = std::ranges::find_if (defendIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != defendIdCardMapping.end ())
             {
               return shared_class::DurakNextMoveSuccess { shared_class::Move::Defend, std::get<1> (*idCard) };
             }
@@ -693,15 +680,15 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
               return std::nullopt;
             }
         }
-      else if (ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
+      else if ( std::ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::TakeCards, {} };
         }
-      else if (ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsNo) != moves.end ())
+      else if ( std::ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsNo) != moves.end ())
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::AnswerDefendWantsToTakeCardsNo, {} };
         }
-      else if (ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsYes) != moves.end ())
+      else if ( std::ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsYes) != moves.end ())
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::AnswerDefendWantsToTakeCardsYes, {} };
         }
@@ -715,7 +702,6 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
       return std::nullopt;
     }
 }
-#pragma GCC pop_options
 
 void
 nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser, auto const &currentState)
@@ -812,7 +798,7 @@ auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boo
   if (auto attackingPlayer = gameDependencies.game.getAttackingPlayer (); attackingPlayer && not attackingPlayer->getCards ().empty ())
     {
       process_event (resumeTimer { { attackingPlayer->id } });
-      if (auto user = ranges::find_if (gameDependencies.users, [&attackingPlayer] (auto const &_user) { return _user.accountName == attackingPlayer->id; }); user != gameDependencies.users.end ())
+      if (auto user = std::ranges::find_if (gameDependencies.users, [&attackingPlayer] (auto const &_user) { return _user.accountName == attackingPlayer->id; }); user != gameDependencies.users.end ())
         {
           user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards {}));
           defendsWantsToTakeCardsSendMovesToAttackOrAssist (gameDependencies.game, durak::PlayerRole::attack, *user);
@@ -825,7 +811,7 @@ auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boo
   if (auto assistingPlayer = gameDependencies.game.getAssistingPlayer (); assistingPlayer && not assistingPlayer->getCards ().empty ())
     {
       process_event (resumeTimer { { assistingPlayer->id } });
-      if (auto user = ranges::find_if (gameDependencies.users, [&assistingPlayer] (auto const &_user) { return _user.accountName == assistingPlayer->id; }); user != gameDependencies.users.end ())
+      if (auto user = std::ranges::find_if (gameDependencies.users, [&assistingPlayer] (auto const &_user) { return _user.accountName == assistingPlayer->id; }); user != gameDependencies.users.end ())
         {
           user->sendMsgToUser (objectToStringWithObjectName (shared_class::DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards {}));
           defendsWantsToTakeCardsSendMovesToAttackOrAssist (gameDependencies.game, durak::PlayerRole::assistAttacker, *user);
@@ -970,7 +956,7 @@ auto const tryToAttackAndInformOtherPlayers = [] (GameDependencies &gameDependen
           defendsWantsToTakeCardsSendMovesToAttackOrAssist (gameDependencies.game, playerRole, user);
           if (auto otherPlayer = (otherPlayerRole == durak::PlayerRole::attack) ? gameDependencies.game.getAttackingPlayer () : gameDependencies.game.getAssistingPlayer ())
             {
-              if (auto otherPlayerItr = ranges::find_if (gameDependencies.users, [otherPlayerName = otherPlayer->id] (auto const &_user) { return _user.accountName == otherPlayerName; }); otherPlayerItr != gameDependencies.users.end ())
+              if (auto otherPlayerItr = std::ranges::find_if (gameDependencies.users, [otherPlayerName = otherPlayer->id] (auto const &_user) { return _user.accountName == otherPlayerName; }); otherPlayerItr != gameDependencies.users.end ())
                 {
                   defendsWantsToTakeCardsSendMovesToAttackOrAssist (gameDependencies.game, otherPlayerRole, *otherPlayerItr);
                 }
@@ -1071,7 +1057,7 @@ auto const wantsToTakeCards = [] (std::tuple<shared_class::DurakAskDefendWantToT
   return askDefendWantToTakeCardsAnswerEvent.answer;
 };
 
-auto const sendStartGameToUser = [] (GameDependencies &gameDependencies) { ranges::for_each (gameDependencies.users, [&gameDependencies] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::StartGameSuccess { gameDependencies.gameName })); }); };
+auto const sendStartGameToUser = [] (GameDependencies &gameDependencies) { std::ranges::for_each (gameDependencies.users, [&gameDependencies] (User &user) { user.sendMsgToUser (objectToStringWithObjectName (matchmaking_game::StartGameSuccess { gameDependencies.gameName })); }); };
 
 class StateMachineImpl
 {
@@ -1213,7 +1199,7 @@ Game::Game(matchmaking_game::StartGame const &startGame, std::string const &game
            std::filesystem::path const &databasePath) : sm{
         new StateMachineWrapper{this, startGame, gameName, std::move(users), ioContext_, gameToMatchmakingEndpoint_}} {
     auto userNames = std::vector<std::string>{};
-    ranges::transform(sm->gameDependencies.users, ranges::back_inserter(userNames),
+    std::ranges::transform(sm->gameDependencies.users, std::back_inserter(userNames),
                       [](User const &user) { return user.accountName; });
     sm->gameDependencies.game = durak::Game{std::move(userNames), startGame.gameOption.gameOption};
     sm->gameDependencies.timerOption.timerType = startGame.gameOption.timerOption.timerType;
@@ -1263,7 +1249,7 @@ std::string const &Game::gameName() const {
 }
 
 bool Game::isUserInGame(std::string const &userName) const {
-    return ranges::find(sm->gameDependencies.users, userName, [](User const &user) { return user.accountName; }) !=
+    return std::ranges::find(sm->gameDependencies.users, userName, [](User const &user) { return user.accountName; }) !=
            sm->gameDependencies.users.end();
 }
 
@@ -1277,7 +1263,7 @@ size_t Game::usersInGame() const {
 }
 
 boost::optional<User &> Game::user(std::string const &userName) {
-    auto userItr = ranges::find(sm->gameDependencies.users, userName,
+    auto userItr = std::ranges::find(sm->gameDependencies.users, userName,
                                 [](User const &user) { return user.accountName; });
     return userItr != sm->gameDependencies.users.end() ? *userItr : boost::optional<User &>{};
 }
