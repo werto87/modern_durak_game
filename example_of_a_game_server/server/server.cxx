@@ -70,8 +70,6 @@ playSuggestedMove (shared_class::DurakNextMoveSuccess const &durakNextMoveSucces
     }
 }
 
-#pragma GCC push_options
-#pragma GCC optimize("O0")
 void
 playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, auto const &msg)
 {
@@ -102,7 +100,6 @@ playNextMove (std::string const &id, std::string const &gameName, std::list<Game
       }
   });
 }
-#pragma GCC pop_options
 
 awaitable<void>
 Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToGameViaMatchmakingEndpoint, boost::asio::io_context &ioContext, std::string matchmakingHost, std::string matchmakingPort, std::filesystem::path databasePath)
