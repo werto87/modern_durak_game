@@ -354,7 +354,7 @@ auto const initTimerHandler = [] (GameDependencies &gameDependencies, boost::sml
 auto const pauseTimerHandler = [] (GameDependencies &gameDependencies, pauseTimer const &pauseTimerEv) {
   std::ranges::for_each (gameDependencies.users, [&playersToPausetime = pauseTimerEv.playersToPause] (auto &user) {
     using namespace std::chrono;
-    if ( std::ranges::find (playersToPausetime, user.accountName) != playersToPausetime.end ())
+    if (std::ranges::find (playersToPausetime, user.accountName) != playersToPausetime.end ())
       {
         user.pausedTime = duration_cast<milliseconds> (user.timer->expiry () - system_clock::now ());
         user.timer->cancel ();
@@ -401,7 +401,7 @@ auto const userReloggedInAskDef = [] (GameDependencies &gameDependencies, userRe
 
 auto const defendsWantsToTakeCardsSendMovesToAttackOrAssist = [] (durak::Game &game, durak::PlayerRole playerRole, User &user) {
   auto allowedMoves = calculateAllowedMoves (game, playerRole);
-  if ( std::ranges::find_if (allowedMoves, [] (auto allowedMove) { return allowedMove == shared_class::Move::AddCards; }) != allowedMoves.end ())
+  if (std::ranges::find_if (allowedMoves, [] (auto allowedMove) { return allowedMove == shared_class::Move::AddCards; }) != allowedMoves.end ())
     {
       user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakAllowedMoves { { shared_class::Move::AttackAssistDoneAddingCards, shared_class::Move::AddCards } }));
     }
@@ -428,7 +428,7 @@ auto const roundStart = [] (GameDependencies &gameDependencies) {
 
 auto const resumeTimerHandler = [] (GameDependencies &gameDependencies, resumeTimer const &resumeTimerEv) {
   std::ranges::for_each (gameDependencies.users, [playersToResume = resumeTimerEv.playersToResume, &gameDependencies] (User &user) {
-    if ( std::ranges::find (playersToResume, user.accountName) != playersToResume.end ())
+    if (std::ranges::find (playersToResume, user.accountName) != playersToResume.end ())
       {
         if (user.pausedTime)
           {
@@ -566,7 +566,6 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
   std::ranges::for_each (gameDependencies.users, [] (auto const &user_) { user_.timer->cancel (); });
 };
 
-
 bool
 hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, auto const &currentState)
 {
@@ -624,7 +623,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
     {
       if (action.has_value ())
         {
-          if ( std::ranges::find (moves, shared_class::Move::AddCards) != moves.end ())
+          if (std::ranges::find (moves, shared_class::Move::AddCards) != moves.end ())
             {
               if (auto idCard = std::ranges::find_if (attackIdCardMapping, [value = action->value ()] (auto const &idAndCard) { return value == std::get<0> (idAndCard); }); idCard != attackIdCardMapping.end ())
                 {
@@ -680,15 +679,15 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
               return std::nullopt;
             }
         }
-      else if ( std::ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
+      else if (std::ranges::find (moves, shared_class::Move::TakeCards) != moves.end ())
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::TakeCards, {} };
         }
-      else if ( std::ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsNo) != moves.end ())
+      else if (std::ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsNo) != moves.end ())
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::AnswerDefendWantsToTakeCardsNo, {} };
         }
-      else if ( std::ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsYes) != moves.end ())
+      else if (std::ranges::find (moves, shared_class::Move::AnswerDefendWantsToTakeCardsYes) != moves.end ())
         {
           return shared_class::DurakNextMoveSuccess { shared_class::Move::AnswerDefendWantsToTakeCardsYes, {} };
         }
@@ -723,14 +722,14 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
           auto const &someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
           if (someRound)
             {
-              if (someRound->combination.empty ())
+              if (someRound->data.empty ())
                 {
                   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError { "Unsupported card combination." }));
                 }
               else
                 {
                   auto const &actions = historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
-                  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToMoveResult (someRound.value ().combination)));
+                  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
                   auto const &actionForRole = nextActionForRole (result, playerRole);
                   auto const &allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
                   auto const &calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, currentState);
@@ -1223,7 +1222,7 @@ std::optional<std::string> Game::processEvent(std::string const &event, std::str
         boost::hana::for_each(shared_class::gameTypes, [&](const auto &x) {
             if (typeToSearch == confu_json::type_name<typename std::decay<decltype(x)>::type>()) {
                 typeFound = true;
-                boost::json::error_code ec{};
+                boost::system::error_code ec{};
                 auto messageAsObject = confu_json::read_json(objectAsString, ec);
                 if (ec) result = "read_json error: " + ec.message();
                 else if (not sm->impl.process_event(std::tuple<std::decay_t<decltype(x)>, User &>{

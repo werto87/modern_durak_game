@@ -27,8 +27,9 @@ printExceptionHelper (std::exception_ptr)
 void
 createCombinationDatabase (std::filesystem::path const &databasePath)
 {
+  using namespace durak_computer_controlled_opponent;
   std::filesystem::remove (databasePath);
-  auto gameLookup = std::map<std::tuple<uint8_t, uint8_t>, std::array<std::map<std::tuple<std::vector<uint8_t>, std::vector<uint8_t> >, std::vector<std::tuple<uint8_t, durak_computer_controlled_opponent::Result> > >, 4> > {};
+  auto gameLookup = std::map<std::tuple<uint8_t, uint8_t>, std::array<std::map<std::tuple<std::vector<uint8_t>, std::vector<uint8_t> >, small_memory_tree::SmallMemoryTreeData<std::tuple<Action, Result> > >, 4> > {};
   std::cout << "create new game lookup table" << std::endl;
   std::cout << "solveDurak (36, 1, 1, gameLookup)" << std::endl;
   gameLookup.insert ({ { 1, 1 }, solveDurak (36, 1, 1, gameLookup) });

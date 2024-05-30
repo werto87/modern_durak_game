@@ -17,7 +17,7 @@ T
 stringToObject (std::string const &objectAsString)
 {
   T t {};
-  boost::json::error_code ec {};
+  boost::system::error_code ec {};
   try
     {
       auto jsonValue = confu_json::read_json (objectAsString, ec);
