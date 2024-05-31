@@ -1188,7 +1188,7 @@ struct Game::StateMachineWrapper {
 };
 
 void // has to be after YourClass::StateMachineWrapper definition
-Game::StateMachineWrapperDeleter::operator()(StateMachineWrapper *p) {
+Game::StateMachineWrapperDeleter::operator()(StateMachineWrapper *p)const {
     delete p;
 }
 
