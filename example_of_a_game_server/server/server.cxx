@@ -190,7 +190,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                       printException (eptr);
                       if (accountName && accountName->has_value ())
                         {
-                          if (auto gameItr = std::ranges::find_if (_games, [accountName] (Game &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != _games.end ())
+                          if (auto gameItr = std::ranges::find_if (_games, [accountName] (Game const &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != _games.end ())
                             {
                               gameItr->removeUser (accountName->value ());
                               if (gameItr->usersInGame () == 0)

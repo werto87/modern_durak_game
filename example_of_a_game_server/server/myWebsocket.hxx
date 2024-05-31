@@ -28,8 +28,8 @@ typedef boost::asio::use_awaitable_t<>::as_default_on_t<boost::asio::basic_waita
 template <class T> class MyWebsocket
 {
 public:
-  explicit MyWebsocket (std::shared_ptr<T> webSocket_) : webSocket{ webSocket_ } {}
-  MyWebsocket (std::shared_ptr<T> webSocket_, std::string loggingName_, fmt::text_style loggingTextStyleForName_, std::string id_) : webSocket{ webSocket_ }, loggingName{ std::move (loggingName_) }, loggingTextStyleForName{ std::move (loggingTextStyleForName_) }, id{ std::move (id_) } {}
+  explicit MyWebsocket (std::shared_ptr<T> webSocket_) : webSocket { webSocket_ } {}
+  MyWebsocket (std::shared_ptr<T> webSocket_, std::string loggingName_, fmt::text_style loggingTextStyleForName_, std::string id_) : webSocket { webSocket_ }, loggingName { std::move (loggingName_) }, loggingTextStyleForName { std::move (loggingTextStyleForName_) }, id { std::move (id_) } {}
   boost::asio::awaitable<std::string> async_read_one_message ();
 
   boost::asio::awaitable<void> readLoop (std::function<void (std::string const &readResult)> onRead);
@@ -42,21 +42,21 @@ public:
   boost::asio::awaitable<void> async_close ();
 
 private:
-  std::shared_ptr<T> webSocket{};
-  std::string loggingName{};
-  fmt::text_style loggingTextStyleForName{};
-  std::string id{};
-  std::deque<std::string> msgQueue{};
-  std::shared_ptr<CoroTimer> timer{};
+  std::shared_ptr<T> webSocket {};
+  std::string loggingName {};
+  fmt::text_style loggingTextStyleForName {};
+  std::string id {};
+  std::deque<std::string> msgQueue {};
+  std::shared_ptr<CoroTimer> timer {};
 };
 
 inline void
 printTagWithPadding (std::string const &tag, fmt::text_style const &style, size_t maxLength)
 {
-  if (maxLength < 3) throw std::logic_error{ "maxLength should be min 3" };
+  if (maxLength < 3) throw std::logic_error { "maxLength should be min 3" };
   if (tag.length () > maxLength)
     {
-      fmt::print (style, "[{:<" + std::to_string (maxLength) + "}]", std::string{ tag.begin (), tag.begin () + boost::numeric_cast<int> (maxLength) - 3 } + "...");
+      fmt::print (style, "[{:<" + std::to_string (maxLength) + "}]", std::string { tag.begin (), tag.begin () + boost::numeric_cast<int> (maxLength) - 3 } + "...");
     }
   else
     {
@@ -114,12 +114,12 @@ template <class T>
 inline boost::asio::awaitable<void>
 MyWebsocket<T>::writeLoop ()
 {
-  auto connection = std::weak_ptr<T>{ webSocket };
+  auto connection = std::weak_ptr<T> { webSocket };
   try
     {
       while (not connection.expired ())
         {
-          timer = std::make_shared<CoroTimer> (CoroTimer{ co_await boost::asio::this_coro::executor });
+          timer = std::make_shared<CoroTimer> (CoroTimer { co_await boost::asio::this_coro::executor });
           timer->expires_after (std::chrono::system_clock::time_point::max () - std::chrono::system_clock::now ());
           try
             {
@@ -150,7 +150,7 @@ MyWebsocket<T>::writeLoop ()
     {
       webSocket.reset ();
       if (timer) timer->cancel ();
-      throw e;
+      throw;
     }
 }
 template <class T>

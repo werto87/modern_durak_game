@@ -1,8 +1,8 @@
 #ifndef EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 #define EFFCC19D_EF93_4BD9_B516_6E5932A5ECA0
 
-#include <filesystem>
 #include <boost/asio/any_io_executor.hpp>
+#include <filesystem>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnull-dereference"
 #include <boost/asio/ip/tcp.hpp>
@@ -18,9 +18,6 @@ namespace boost::asio
 {
 class io_context;
 }
-
-
-
 
 namespace matchmaking_game
 {
@@ -53,7 +50,7 @@ private:
   struct StateMachineWrapper;
   struct StateMachineWrapperDeleter
   {
-    void operator() (StateMachineWrapper *p);
+    void operator() (StateMachineWrapper *p) const;
   };
 
   std::unique_ptr<StateMachineWrapper, StateMachineWrapperDeleter> sm; // only use this member inside of ".cxx". reason because of incomplete type
