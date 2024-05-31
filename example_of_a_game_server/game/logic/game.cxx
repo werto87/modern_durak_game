@@ -38,6 +38,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 struct Chill
@@ -567,15 +568,14 @@ auto const userLeftGame = [] (GameDependencies &gameDependencies, std::tuple<sha
 };
 
 bool
-hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, auto const &currentState)
+hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, std::variant<AskAttackAndAssist, AskDef, Chill> const &currentState)
 {
-  using CurrentStateType = std::decay_t<decltype (currentState)>;
   using namespace durak;
   switch (playerRole)
     {
     case PlayerRole::attack:
       {
-        if (passAttackAndAssist.attack == false and (game.getTableAsVector ().size () % 2 == 0 or std::same_as<CurrentStateType, AskAttackAndAssist>))
+        if (passAttackAndAssist.attack == false and (game.getTableAsVector ().size () % 2 == 0 or std::holds_alternative<AskAttackAndAssist> (currentState)))
           {
             return true;
           }
@@ -587,7 +587,7 @@ hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndA
     case PlayerRole::assistAttacker:
       {
 
-        if (game.getAttackStarted () and passAttackAndAssist.assist == false and (game.getTableAsVector ().size () % 2 == 0 or std::same_as<CurrentStateType, AskAttackAndAssist>))
+        if (game.getAttackStarted () and passAttackAndAssist.assist == false and (game.getTableAsVector ().size () % 2 == 0 or std::holds_alternative<AskAttackAndAssist> (currentState)))
           {
             return true;
           }
@@ -616,9 +616,8 @@ hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndA
 }
 
 std::optional<shared_class::DurakNextMoveSuccess>
-calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, auto const &currentState)
+calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, std::variant<AskAttackAndAssist, AskDef, Chill> const &currentState)
 {
-  using CurrentStateType = std::decay_t<decltype (currentState)>;
   if (playerRole == durak::PlayerRole::attack)
     {
       if (action.has_value ())
@@ -631,7 +630,8 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                 }
               else
                 {
-                  if (std::same_as<CurrentStateType, AskAttackAndAssist>)
+
+                  if (std::holds_alternative<AskAttackAndAssist> (currentState))
                     {
                       return shared_class::DurakNextMoveSuccess { shared_class::Move::AttackAssistDoneAddingCards, {} };
                     }
@@ -641,7 +641,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
                     }
                 }
             }
-          else if (std::same_as<CurrentStateType, AskAttackAndAssist>)
+          else if (std::holds_alternative<AskAttackAndAssist> (currentState))
             {
               return shared_class::DurakNextMoveSuccess { shared_class::Move::AttackAssistDoneAddingCards, {} };
             }
@@ -703,7 +703,7 @@ calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &a
 }
 
 void
-nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser, auto const &currentState)
+nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNextMove, User &> const &durakNextMoveUser, std::variant<AskAttackAndAssist, AskDef, Chill> const &currentState)
 {
   auto &[event, user] = durakNextMoveUser;
   if (durak_computer_controlled_opponent::tableValidForMoveLookUp (gameDependencies.game.getTable ()))

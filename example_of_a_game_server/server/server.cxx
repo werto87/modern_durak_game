@@ -71,7 +71,7 @@ playSuggestedMove (shared_class::DurakNextMoveSuccess const &durakNextMoveSucces
 }
 
 void
-playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, auto const &msg)
+playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, std::string const &msg)
 {
 #ifdef LOG_COMPUTER_CONTROLLED_OPPONENT_MASSAGE_RECEIVED
   std::cout << "id: " << id << " msg to computer controlled opponent: " << msg << std::endl;

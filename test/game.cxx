@@ -11,14 +11,14 @@
 #include <durak_computer_controlled_opponent/permutation.hxx>
 #include <durak_computer_controlled_opponent/solve.hxx>
 #include <durak_computer_controlled_opponent/util.hxx>
-std::optional<shared_class::DurakNextMoveSuccess> calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, auto const &currentState);
+
 struct PassAttackAndAssist
 {
   bool attack {};
   bool assist {};
 };
 std::vector<shared_class::Move> calculateAllowedMovesWithPassState (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist);
-bool hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, auto const &currentState);
+
 struct Chill
 {
 };
@@ -28,7 +28,9 @@ struct AskDef
 struct AskAttackAndAssist
 {
 };
-void playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, auto const &msg);
+std::optional<shared_class::DurakNextMoveSuccess> calcNextMove (std::optional<durak_computer_controlled_opponent::Action> const &action, std::vector<shared_class::Move> const &moves, durak::PlayerRole const &playerRole, std::vector<std::tuple<uint8_t, durak::Card> > const &defendIdCardMapping, std::vector<std::tuple<uint8_t, durak::Card> > const &attackIdCardMapping, std::variant<AskAttackAndAssist, AskDef, Chill> const &currentState);
+bool hasToMove (durak::Game const &game, durak::PlayerRole playerRole, PassAttackAndAssist passAttackAndAssist, std::variant<AskAttackAndAssist, AskDef, Chill> const &currentState);
+void playNextMove (std::string const &id, std::string const &gameName, std::list<Game> &games, boost::asio::io_context &ioContext, std::string const &msg);
 TEST_CASE ("hasToMove Chill no card played", "[game]")
 {
   using namespace durak;
@@ -350,6 +352,7 @@ TEST_CASE ("play the game", "[game]")
   });
   auto &game = games.emplace_back (Game { startGame, gameName, std::move (users), ioContext, gameToMatchmakingEndpoint_, DEFAULT_DATABASE_PATH });
   game.startGame ();
-  ioContext.run_for (std::chrono::seconds { 5 });
+  // ioContext.run_for (std::chrono::seconds { 5 });
+  ioContext.run ();
   REQUIRE (gameOver);
 }
