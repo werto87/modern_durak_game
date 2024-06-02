@@ -1210,63 +1210,117 @@ Game::Game(matchmaking_game::StartGame const &startGame, std::string const &game
     sm->gameDependencies.databasePath = databasePath;
 }
 
+// clang-format off
+namespace shared_class{
+    // TODO-TEMPLATE add new type to handle in server
+static boost::hana::tuple<
+DurakAttack,
+DurakAttackSuccess,
+DurakAttackError,
+DurakDefend,
+DurakDefendSuccess,
+DurakDefendError,
+DurakAttackPass,
+DurakAttackPassSuccess,
+DurakAttackPassError,
+DurakAssistPass,
+DurakAssistPassSuccess,
+DurakAssistPassError,
+DurakDefendPass,
+DurakDefendPassSuccess,
+DurakDefendPassError,
+DurakAskDefendWantToTakeCards,
+DurakAskDefendWantToTakeCardsAnswer,
+DurakAskDefendWantToTakeCardsAnswerSuccess,
+DurakAskDefendWantToTakeCardsAnswerError,
+DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards,
+DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCardsAnswer,
+DurakDefendWantsToTakeCardsFromTableDoneAddingCards,
+DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess,
+DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError,
+DurakGameOverWon,
+DurakGameOverLose,
+DurakGameOverDraw,
+DurakLeaveGame,
+DurakLeaveGameError,
+DurakTimers,
+DurakAllowedMoves,
+DurakNextMove,
+DurakNextMoveSuccess
+  >  const gameTypes{};
+}
+// clang-format on
 
-std::optional<std::string> Game::processEvent(std::string const &event, std::string const &accountName) {
-    std::vector<std::string> splitMessage{};
-    boost::algorithm::split(splitMessage, event, boost::is_any_of("|"));
-    auto result = std::optional<std::string>{};
-    if (splitMessage.size() == 2) {
-        auto const &typeToSearch = splitMessage.at(0);
-        auto const &objectAsString = splitMessage.at(1);
-        bool typeFound = false;
-        boost::hana::for_each(shared_class::gameTypes, [&](const auto &x) {
-            if (typeToSearch == confu_json::type_name<typename std::decay<decltype(x)>::type>()) {
-                typeFound = true;
-                boost::system::error_code ec{};
-                auto messageAsObject = confu_json::read_json(objectAsString, ec);
-                if (ec) result = "read_json error: " + ec.message();
-                else if (not sm->impl.process_event(std::tuple<std::decay_t<decltype(x)>, User &>{
-                        confu_json::to_object<std::decay_t<decltype(x)> >(messageAsObject), user(accountName).value()}))
-                    result = "No transition found";
-                return;
-            }
-        });
-        if (not typeFound)
-            result = "could not find a match for typeToSearch in shared_class::gameTypes '" + typeToSearch + "'";
-    } else result = "Not supported event. event syntax: EventName|JsonObject";
-    return result;
+std::optional<std::string>
+Game::processEvent (std::string const &event, std::string const &accountName)
+{
+  std::vector<std::string> splitMessage {};
+  boost::algorithm::split (splitMessage, event, boost::is_any_of ("|"));
+  auto result = std::optional<std::string> {};
+  if (splitMessage.size () == 2)
+    {
+      auto const &typeToSearch = splitMessage.at (0);
+      auto const &objectAsString = splitMessage.at (1);
+      bool typeFound = false;
+      boost::hana::for_each (shared_class::gameTypes, [&] (auto const &x) {
+        if (typeToSearch == confu_json::type_name<typename std::decay<decltype (x)>::type> ())
+          {
+            typeFound = true;
+            boost::system::error_code ec {};
+            auto messageAsObject = confu_json::read_json (objectAsString, ec);
+            if (ec) result = "read_json error: " + ec.message ();
+            else if (not sm->impl.process_event (std::tuple<std::decay_t<decltype (x)>, User &> { confu_json::to_object<std::decay_t<decltype (x)> > (messageAsObject), user (accountName).value () }))
+              result = "No transition found";
+            return;
+          }
+      });
+      if (not typeFound) result = "could not find a match for typeToSearch in shared_class::gameTypes '" + typeToSearch + "'";
+    }
+  else
+    result = "Not supported event. event syntax: EventName|JsonObject";
+  return result;
 }
 
-void Game::startGame() {
-    sm->impl.process_event(initTimer{});
-    sm->impl.process_event(start{});
+void
+Game::startGame ()
+{
+  sm->impl.process_event (initTimer {});
+  sm->impl.process_event (start {});
 }
 
-
-std::string const &Game::gameName() const {
-    return sm->gameDependencies.gameName;
+std::string const &
+Game::gameName () const
+{
+  return sm->gameDependencies.gameName;
 }
 
-bool Game::isUserInGame(std::string const &userName) const {
-    return std::ranges::find(sm->gameDependencies.users, userName, [](User const &user) { return user.accountName; }) !=
-           sm->gameDependencies.users.end();
+bool
+Game::isUserInGame (std::string const &userName) const
+{
+  return std::ranges::find (sm->gameDependencies.users, userName, [] (User const &user) { return user.accountName; }) != sm->gameDependencies.users.end ();
 }
 
-bool Game::removeUser(std::string const &userName) {
-    return std::erase_if(sm->gameDependencies.users,
-                         [&userName](User const &user) { return userName == user.accountName; }) > 0;
+bool
+Game::removeUser (std::string const &userName)
+{
+  return std::erase_if (sm->gameDependencies.users, [&userName] (User const &user) { return userName == user.accountName; }) > 0;
 }
 
-size_t Game::usersInGame() const {
-    return sm->gameDependencies.users.size();
+size_t
+Game::usersInGame () const
+{
+  return sm->gameDependencies.users.size ();
 }
 
-boost::optional<User &> Game::user(std::string const &userName) {
-    auto userItr = std::ranges::find(sm->gameDependencies.users, userName,
-                                [](User const &user) { return user.accountName; });
-    return userItr != sm->gameDependencies.users.end() ? *userItr : boost::optional<User &>{};
+boost::optional<User &>
+Game::user (std::string const &userName)
+{
+  auto userItr = std::ranges::find (sm->gameDependencies.users, userName, [] (User const &user) { return user.accountName; });
+  return userItr != sm->gameDependencies.users.end () ? *userItr : boost::optional<User &> {};
 }
 
-durak::Game const &Game::durakGame() const {
-    return sm->gameDependencies.game;
+durak::Game const &
+Game::durakGame () const
+{
+  return sm->gameDependencies.game;
 }
