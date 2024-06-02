@@ -4,11 +4,11 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/this_coro.hpp>
+#include <example_of_a_game_server/game/logic/gameAllowedTypes.hxx>
 #include <iostream>
 #include <memory>
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include <optional>
-
 using namespace boost::beast;
 using namespace boost::asio;
 using boost::asio::ip::tcp;

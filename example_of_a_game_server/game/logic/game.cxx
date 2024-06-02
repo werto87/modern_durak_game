@@ -1,6 +1,7 @@
 #include "example_of_a_game_server/game/logic/game.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
 #include "example_of_a_game_server/game/logic/allowedMoves.hxx"
+#include "example_of_a_game_server/game/logic/gameAllowedTypes.hxx"
 #include "example_of_a_game_server/server/user.hxx"
 #include "example_of_a_game_server/util/util.hxx"
 #include <algorithm>
@@ -32,7 +33,6 @@
 #include <fmt/format.h>
 #include <iostream>
 #include <magic_enum/magic_enum.hpp>
-#include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include <optional>
 #include <queue>
 #include <stdexcept>
@@ -1210,46 +1210,7 @@ Game::Game(matchmaking_game::StartGame const &startGame, std::string const &game
     sm->gameDependencies.databasePath = databasePath;
 }
 
-// clang-format off
-namespace shared_class{
-    // TODO-TEMPLATE add new type to handle in server
-static boost::hana::tuple<
-DurakAttack,
-DurakAttackSuccess,
-DurakAttackError,
-DurakDefend,
-DurakDefendSuccess,
-DurakDefendError,
-DurakAttackPass,
-DurakAttackPassSuccess,
-DurakAttackPassError,
-DurakAssistPass,
-DurakAssistPassSuccess,
-DurakAssistPassError,
-DurakDefendPass,
-DurakDefendPassSuccess,
-DurakDefendPassError,
-DurakAskDefendWantToTakeCards,
-DurakAskDefendWantToTakeCardsAnswer,
-DurakAskDefendWantToTakeCardsAnswerSuccess,
-DurakAskDefendWantToTakeCardsAnswerError,
-DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCards,
-DurakDefendWantsToTakeCardsFromTableDoYouWantToAddCardsAnswer,
-DurakDefendWantsToTakeCardsFromTableDoneAddingCards,
-DurakDefendWantsToTakeCardsFromTableDoneAddingCardsSuccess,
-DurakDefendWantsToTakeCardsFromTableDoneAddingCardsError,
-DurakGameOverWon,
-DurakGameOverLose,
-DurakGameOverDraw,
-DurakLeaveGame,
-DurakLeaveGameError,
-DurakTimers,
-DurakAllowedMoves,
-DurakNextMove,
-DurakNextMoveSuccess
-  >  const gameTypes{};
-}
-// clang-format on
+
 
 std::optional<std::string>
 Game::processEvent (std::string const &event, std::string const &accountName)
