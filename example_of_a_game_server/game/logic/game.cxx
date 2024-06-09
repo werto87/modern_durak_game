@@ -32,6 +32,7 @@
 #include <durak_computer_controlled_opponent/util.hxx>
 #include <fmt/format.h>
 #include <iostream>
+#include <login_matchmaking_game_shared/matchmakingGameSerialization.hxx>
 #include <magic_enum/magic_enum.hpp>
 #include <optional>
 #include <queue>
@@ -1198,16 +1199,19 @@ Game::Game(matchmaking_game::StartGame const &startGame, std::string const &game
            std::filesystem::path const &databasePath) : sm{
         new StateMachineWrapper{this, startGame, gameName, std::move(users), ioContext_, gameToMatchmakingEndpoint_}} {
     auto userNames = std::vector<std::string>{};
-    std::ranges::transform(sm->gameDependencies.users, std::back_inserter(userNames),
-                      [](User const &user) { return user.accountName; });
-    sm->gameDependencies.game = durak::Game{std::move(userNames), startGame.gameOption.gameOption};
-    sm->gameDependencies.timerOption.timerType = startGame.gameOption.timerOption.timerType;
-    sm->gameDependencies.opponentCards = startGame.gameOption.opponentCards;
-    sm->gameDependencies.timerOption.timeAtStart = std::chrono::seconds{
-            startGame.gameOption.timerOption.timeAtStartInSeconds};
-    sm->gameDependencies.timerOption.timeForEachRound = std::chrono::seconds{
-            startGame.gameOption.timerOption.timeForEachRoundInSeconds};
-    sm->gameDependencies.databasePath = databasePath;
+    std::ranges::transform(sm->gameDependencies.users, std::back_inserter(userNames),[](User const &user) { return user.accountName; });
+    if(auto gameOption=toGameOption(startGame.gameOptionAsString.gameOptionAsString)){
+        sm->gameDependencies.game = durak::Game{std::move(userNames), gameOption->gameOption};
+        sm->gameDependencies.timerOption.timerType = gameOption->timerOption.timerType;
+        sm->gameDependencies.opponentCards = gameOption->opponentCards;
+        sm->gameDependencies.timerOption.timeAtStart = std::chrono::seconds{gameOption->timerOption.timeAtStartInSeconds};
+        sm->gameDependencies.timerOption.timeForEachRound = std::chrono::seconds{gameOption->timerOption.timeForEachRoundInSeconds};
+        sm->gameDependencies.databasePath = databasePath;
+   }
+   else
+   {
+    std::cout << "StartGameError: " << gameOption.error() << std::endl;
+   }  
 }
 
 

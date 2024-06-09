@@ -1,6 +1,8 @@
 #include "example_of_a_game_server/util/util.hxx"
 #include "example_of_a_game_server/game/logic/allowedMoves.hxx"
 #include <durak_computer_controlled_opponent/database.hxx>
+#include <login_matchmaking_game_shared/matchmakingGameSerialization.hxx>
+#include <modern_durak_game_option/userDefinedGameOption.hxx>
 #ifdef LOG_CO_SPAWN_PRINT_EXCEPTIONS
 void
 printExceptionHelper (std::exception_ptr eptr)
@@ -47,4 +49,22 @@ createCombinationDatabase (std::filesystem::path const &databasePath)
   durak_computer_controlled_opponent::database::createTables (databasePath);
   durak_computer_controlled_opponent::database::insertGameLookUp (databasePath, gameLookup);
   std::cout << "finished creating game lookup table " << std::endl;
+}
+
+std::expected<shared_class::GameOption, std::string>
+toGameOption (std::string const &gameOptionAsString)
+{
+  auto ec = boost::system::error_code {};
+  auto result = confu_json::read_json (gameOptionAsString, ec);
+  if (ec)
+    {
+      auto error = std::stringstream {};
+      error << "error while parsing string: error code: " << ec << std::endl;
+      error << "error while parsing string: stringToParse: " << gameOptionAsString << std::endl;
+      return std::unexpected (error.str ());
+    }
+  else
+    {
+      return confu_json::to_object<shared_class::GameOption> (result);
+    }
 }

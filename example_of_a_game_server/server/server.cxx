@@ -143,12 +143,19 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                           }
                         if (gameToCreate->allUsersConnected ())
                           {
-                            auto computerControlledPlayerNames = std::vector<std::string> (gameToCreate->startGame.gameOption.computerControlledPlayerCount);
-                            std::ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
-                            std::ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &_games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &_games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, _games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
-                            auto &game = _games.emplace_back (Game { gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
-                            game.startGame ();
-                            _gamesToCreate.erase (gameToCreate);
+                            if (auto const &gameOption = toGameOption (gameToCreate->startGame.gameOptionAsString.gameOptionAsString))
+                              {
+                                auto computerControlledPlayerNames = std::vector<std::string> (gameOption->computerControlledPlayerCount);
+                                std::ranges::generate (computerControlledPlayerNames, [] () { return boost::uuids::to_string (boost::uuids::random_generator () ()); });
+                                std::ranges::for_each (computerControlledPlayerNames, [gameName = gameToCreate->gameName, &_games, &gameToCreate, &ioContext] (auto const &_id) { gameToCreate->users.push_back ({ _id, [_id, gameName, &_games, &ioContext] (auto const &_msg) { playNextMove (_id, gameName, _games, ioContext, _msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }); });
+                                auto &game = _games.emplace_back (Game { gameToCreate->startGame, gameToCreate->gameName, std::move (gameToCreate->users), ioContext, gameToMatchmakingEndpoint, databasePath });
+                                game.startGame ();
+                                _gamesToCreate.erase (gameToCreate);
+                              }
+                            else
+                              {
+                                myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { gameOption.error () }));
+                              }
                           }
                       }
                     else

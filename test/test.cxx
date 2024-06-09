@@ -14,6 +14,7 @@
 #include <durak_computer_controlled_opponent/database.hxx>
 #include <exception>
 #include <iostream>
+#include <modern_durak_game_option/userDefinedGameOption.hxx>
 #include <sstream>
 #include <stdexcept>
 
@@ -71,13 +72,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakLeaveGame")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakLeaveGame81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -103,13 +108,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakAttackPass")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakAttackPass81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -135,13 +144,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakAssistPass")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakAssistPass81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -167,13 +180,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakDefendPass")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakDefendPass81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -199,13 +216,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakDefend")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakDefend81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -231,13 +252,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakAttack")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakAttack81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -263,13 +288,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("DurakAskDefendWantToTakeCardsAnswer")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"DurakAskDefendWantToTakeCardsAnswer81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -295,13 +324,17 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("NextMove")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"NextMove81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -327,14 +360,18 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("ComputerControlledOpponent")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    startGame.gameOption.computerControlledPlayerCount=1;
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    gameOption.computerControlledPlayerCount = 1;
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -364,13 +401,17 @@ TEST_CASE ("send message to game", "[game]")
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     startGame.players = { "NextMove" };
-    startGame.gameOption.gameOption.cardsInHands = std::vector<std::vector<Card> > {};
-    startGame.gameOption.gameOption.customCardDeck = std::vector<Card> {};
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.cardsInHands = std::vector<std::vector<Card> > {};
+    gameOption.gameOption.customCardDeck = std::vector<Card> {};
     auto playerOneCards = std::vector<Card> { { 1, Type::clubs } };
     auto playerTwoCards = std::vector<Card> { { 2, Type::clubs }, { 2, Type::hearts }, { 1, Type::hearts } };
-    startGame.gameOption.gameOption.cardsInHands->push_back (playerOneCards);
-    startGame.gameOption.gameOption.cardsInHands->push_back (playerTwoCards);
-    startGame.gameOption.computerControlledPlayerCount = 1;
+    gameOption.gameOption.cardsInHands->push_back (playerOneCards);
+    gameOption.gameOption.cardsInHands->push_back (playerTwoCards);
+    gameOption.computerControlledPlayerCount = 1;
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
     auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -397,16 +438,20 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("ComputerControlledOpponent timer")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    startGame.gameOption.computerControlledPlayerCount=1;
-    startGame.gameOption.timerOption.timeAtStartInSeconds=1;
-    startGame.gameOption.timerOption.timerType=shared_class::TimerType::addTimeOnNewRound;
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    gameOption.computerControlledPlayerCount = 1;
+    gameOption.timerOption.timeAtStartInSeconds = 1;
+    gameOption.timerOption.timerType = shared_class::TimerType::addTimeOnNewRound;
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();
@@ -426,14 +471,18 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("ComputerControlledOpponent next move")
   {
     auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto startGame = matchmaking_game::StartGame {};
     // clang-format off
-    auto startGame=matchmaking_game::StartGame{};
     startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};
-    startGame.gameOption.gameOption.numberOfCardsPlayerShouldHave=2;
-    startGame.gameOption.gameOption.customCardDeck=std::vector<durak::Card>{{7,durak::Type::clubs},{8,durak::Type::clubs},{3,durak::Type::hearts},{3,durak::Type::clubs}};
-    startGame.gameOption.computerControlledPlayerCount=1;
-    auto sendMessageBeforeStartRead = std::vector<std::string>{objectToStringWithObjectName(startGame)};
     // clang-format on
+    auto gameOption = shared_class::GameOption {};
+    gameOption.gameOption.numberOfCardsPlayerShouldHave = 2;
+    gameOption.gameOption.customCardDeck = std::vector<durak::Card> { { 7, durak::Type::clubs }, { 8, durak::Type::clubs }, { 3, durak::Type::hearts }, { 3, durak::Type::clubs } };
+    gameOption.computerControlledPlayerCount = 1;
+    auto ss = std::stringstream {};
+    ss << confu_json::to_json (gameOption);
+    startGame.gameOptionAsString.gameOptionAsString = ss.str ();
+    auto sendMessageBeforeStartRead = std::vector<std::string> { objectToStringWithObjectName (startGame) };
     co_spawn (ioContext, connectWebsocket (handleMsgFromGame, ioContext, endpointMatchmakingGame, sendMessageBeforeStartRead, "start_game"), printException);
     ioContext.run_for (std::chrono::seconds { 5 });
     ioContext.reset ();

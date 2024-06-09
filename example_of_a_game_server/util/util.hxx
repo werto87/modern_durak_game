@@ -2,7 +2,14 @@
 #define EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1
 #include <confu_json/confu_json.hxx>
 #include <confu_json/util.hxx>
+#include <expected>
 #include <filesystem>
+
+namespace shared_class
+{
+class GameOption;
+}
+
 template <typename TypeToSend>
 std::string
 objectToStringWithObjectName (TypeToSend const &typeToSend)
@@ -59,5 +66,7 @@ auto const printException2 = [] (std::exception_ptr eptr, auto) { printException
 auto const printException = overloaded { printException1, printException2 };
 
 void createCombinationDatabase (std::filesystem::path const &databasePath);
+
+[[nodiscard]] std::expected<shared_class::GameOption, std::string> toGameOption (std::string const &gameOptionAsString);
 
 #endif /* EBD66723_6B6F_4460_A3DE_00AEB1E6D6B1 */

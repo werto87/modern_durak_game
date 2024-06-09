@@ -5,6 +5,7 @@
 #include "user.hxx"
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <login_matchmaking_game_shared/matchmakingGameSerialization.hxx>
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>
 #include <string>
 

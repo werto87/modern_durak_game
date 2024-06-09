@@ -4,6 +4,7 @@
 #include "example_of_a_game_server/server/server.hxx"
 #include "example_of_a_game_server/util/util.hxx"
 #include <catch2/catch.hpp>
+#include <confu_json/to_json.hxx>
 #include <durak/card.hxx>
 #include <durak/game.hxx>
 #include <durak/gameOption.hxx>
@@ -11,6 +12,7 @@
 #include <durak_computer_controlled_opponent/permutation.hxx>
 #include <durak_computer_controlled_opponent/solve.hxx>
 #include <durak_computer_controlled_opponent/util.hxx>
+#include <modern_durak_game_option/userDefinedGameOption.hxx>
 
 struct PassAttackAndAssist
 {
@@ -322,8 +324,13 @@ TEST_CASE ("play the game", "[game]")
   cardsInHands.push_back (playerTwoCards);
   auto trumpType = durak::Type::spades;
   matchmaking_game::StartGame startGame {};
-  startGame.gameOption.gameOption = durak::GameOption { .numberOfCardsPlayerShouldHave = 3, .trump = trumpType, .customCardDeck = std::vector<durak::Card> {}, .cardsInHands = cardsInHands };
-  startGame.gameOption.opponentCards = shared_class::OpponentCards::showOpponentCards;
+  auto durakGameOption = durak::GameOption { .numberOfCardsPlayerShouldHave = 3, .trump = trumpType, .customCardDeck = std::vector<durak::Card> {}, .cardsInHands = cardsInHands };
+  auto gameOption = shared_class::GameOption {};
+  gameOption.gameOption = durakGameOption;
+  gameOption.opponentCards = shared_class::OpponentCards::showOpponentCards;
+  auto ss = std::stringstream {};
+  ss << confu_json::to_json (gameOption);
+  startGame.gameOptionAsString.gameOptionAsString = ss.str ();
   std::string gameName { "gameName" };
   std::list<User> users {};
   boost::asio::io_context ioContext {};
@@ -340,13 +347,16 @@ TEST_CASE ("play the game", "[game]")
                              ioContext.stop ();
                            }
                          // clang-format off
-                                 if (boost::starts_with (msg, R"(DurakNextMoveError|{"error":"Unsupported card combination."})"))
+                         else if (boost::starts_with (msg, R"(DurakNextMoveError|{"error":"Unsupported card combination."})"))
                            // clang-format on
                            {
                              gameOver = true;
                              ioContext.stop ();
                            }
-                         playNextMove (id, gameName, games, ioContext, msg);
+                         else
+                           {
+                             playNextMove (id, gameName, games, ioContext, msg);
+                           }
                        },
                        std::make_shared<boost::asio::system_timer> (ioContext) });
   });
