@@ -1,19 +1,19 @@
 FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2024_06_12_09_54_36 as BUILD
 
-COPY cmake /home/build_user/example_of_a_game_server/cmake
-COPY example_of_a_game_server /home/build_user/example_of_a_game_server/example_of_a_game_server
-COPY test /home/build_user/example_of_a_game_server/test
-COPY CMakeLists.txt /home/build_user/example_of_a_game_server
-COPY conanfile.py /home/build_user/example_of_a_game_server
-COPY create_combination_database.cxx /home/build_user/example_of_a_game_server
-COPY main.cxx /home/build_user/example_of_a_game_server
-COPY ProjectOptions.cmake /home/build_user/example_of_a_game_server
+COPY cmake /home/build_user/modern_durak_game/cmake
+COPY modern_durak_game /home/build_user/modern_durak_game/modern_durak_game
+COPY test /home/build_user/modern_durak_game/test
+COPY CMakeLists.txt /home/build_user/modern_durak_game
+COPY conanfile.py /home/build_user/modern_durak_game
+COPY create_combination_database.cxx /home/build_user/modern_durak_game
+COPY main.cxx /home/build_user/modern_durak_game
+COPY ProjectOptions.cmake /home/build_user/modern_durak_game
 
-WORKDIR /home/build_user/example_of_a_game_server
+WORKDIR /home/build_user/modern_durak_game
 
 RUN sudo chown -R build_user /home/build_user && conan remote add modern_durak http://modern-durak.com:8081/artifactory/api/conan/conan-local && conan profile detect && conan remote login modern_durak read -p 'B2"bi%y@SQhqP~X' && conan install . --output-folder=build --settings compiler.cppstd=gnu23 --build=missing
 
-WORKDIR /home/build_user/example_of_a_game_server/build
+WORKDIR /home/build_user/modern_durak_game/build
 
 RUN cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DBUILD_TESTS=True -D CMAKE_BUILD_TYPE=Release
 
@@ -25,8 +25,8 @@ RUN test/_test -d yes --order lex
 
 FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2024_06_12_10_00_50
 
-COPY --from=BUILD /home/build_user/example_of_a_game_server/build/run_server /home/build_user/example_of_a_game_server/example_of_a_game_server
+COPY --from=BUILD /home/build_user/modern_durak_game/build/run_server /home/build_user/modern_durak_game/modern_durak_game
 
-COPY --from=BUILD /home/build_user/example_of_a_game_server/test/database/combination.db /home/build_user/example_of_a_game_server/build/combination.db
+COPY --from=BUILD /home/build_user/modern_durak_game/test/database/combination.db /home/build_user/modern_durak_game/build/combination.db
 
-CMD [ "/home/build_user/example_of_a_game_server/example_of_a_game_server" ]
+CMD [ "/home/build_user/modern_durak_game/modern_durak_game" ]
