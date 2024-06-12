@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15.7)
 set(CMAKE_CXX_STANDARD 23)
 
 project(
-        example_of_a_game_server
+        modern_durak_game
         VERSION 0.0.1
         LANGUAGES CXX C)
 include(cmake/PreventInSourceBuilds.cmake)
@@ -14,7 +14,7 @@ add_library(myproject::myproject_options ALIAS myproject_options)
 add_library(myproject::myproject_warnings ALIAS myproject_warnings)
 add_subdirectory(modern_durak_game)
 add_executable(create_combination_database create_combination_database.cxx)
-target_link_libraries(create_combination_database example_of_a_game_server)
+target_link_libraries(create_combination_database modern_durak_game)
 target_compile_definitions(create_combination_database PRIVATE PATH_TO_DATABASE_TEST="${CMAKE_SOURCE_DIR}/test/database/combination.db")
 target_compile_options(create_combination_database PRIVATE)
 OPTION(BUILD_TESTS "enable tests" OFF)
@@ -23,7 +23,7 @@ IF (BUILD_TESTS)
     add_subdirectory(test)
 ENDIF (BUILD_TESTS)
 add_executable(run_server main.cxx)
-target_link_libraries(run_server example_of_a_game_server)
+target_link_libraries(run_server modern_durak_game)
 target_compile_definitions(run_server PRIVATE
         # BOOST_ASIO_DISABLE_THREADS
         LOG_CO_SPAWN_PRINT_EXCEPTIONS

@@ -40,7 +40,7 @@ main (int argc, char **argv)
     }
   else
     {
-      std::cout << "starting example_of_a_game_server" << std::endl;
+      std::cout << "starting modern_durak_game" << std::endl;
       try
         {
           using namespace boost::asio;

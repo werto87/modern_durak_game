@@ -5,11 +5,11 @@
 ## (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-add_library(example_of_a_game_server
+add_library(modern_durak_game
         )
 
 
-add_library(myproject::example_of_a_game_server ALIAS example_of_a_game_server)
+add_library(myproject::modern_durak_game ALIAS modern_durak_game)
 
 
 find_package(sml)
@@ -24,7 +24,7 @@ find_package(modern_durak_game_shared)
 find_package(modern_durak_game_option)
 
 
-target_link_libraries(example_of_a_game_server PUBLIC
+target_link_libraries(modern_durak_game PUBLIC
         sml::sml
         durak_computer_controlled_opponent::durak_computer_controlled_opponent
         modern_durak_game_shared::modern_durak_game_shared
@@ -37,14 +37,14 @@ target_link_libraries(example_of_a_game_server PUBLIC
         )
 
 
-target_compile_features(example_of_a_game_server PUBLIC cxx_std_20)
+target_compile_features(modern_durak_game PUBLIC cxx_std_20)
 
 add_subdirectory(game)
 add_subdirectory(server)
 add_subdirectory(util)
 
 
-target_include_directories(example_of_a_game_server
+target_include_directories(modern_durak_game
         PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
         )

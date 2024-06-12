@@ -7,7 +7,7 @@ find_package(Catch2)
 target_link_libraries(_test
         myproject_options
         myproject_warnings
-        example_of_a_game_server
+        modern_durak_game
         Catch2::Catch2
         )
 target_compile_definitions(_test PUBLIC

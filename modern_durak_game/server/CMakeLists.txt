@@ -5,7 +5,7 @@
 ## (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-target_sources(example_of_a_game_server PUBLIC
+target_sources(modern_durak_game PUBLIC
         gameToCreate.cxx
         server.cxx
         )

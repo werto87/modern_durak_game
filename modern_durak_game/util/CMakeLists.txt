@@ -1,3 +1,3 @@
-target_sources(example_of_a_game_server PUBLIC
+target_sources(modern_durak_game PUBLIC
         util.cxx
         )
