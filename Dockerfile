@@ -1,4 +1,4 @@
-FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2024_06_09_08_54_52 as BUILD
+FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2024_06_12_09_54_36 as BUILD
 
 COPY cmake /home/build_user/example_of_a_game_server/cmake
 COPY example_of_a_game_server /home/build_user/example_of_a_game_server/example_of_a_game_server
@@ -23,7 +23,7 @@ RUN ./create_combination_database
 
 RUN test/_test -d yes --order lex
 
-FROM archlinux:latest
+FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2024_06_12_10_00_50
 
 COPY --from=BUILD /home/build_user/example_of_a_game_server/build/run_server /home/build_user/example_of_a_game_server/example_of_a_game_server
 
