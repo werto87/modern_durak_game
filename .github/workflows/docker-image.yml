@@ -20,7 +20,7 @@ jobs:
           # GitHub token to push Docker image to GitHub Packages
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # Docker Image name
-          image-name: example_of_a_game_server
+          image-name: modern_durak_game
           # Docker Image tag
           image-tag: latest
           # Extract git-tag from repository
