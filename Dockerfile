@@ -15,7 +15,8 @@ RUN sudo chown -R build_user /home/build_user && conan remote add modern_durak h
 
 WORKDIR /home/build_user/modern_durak_game/build
 
-RUN cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DBUILD_TESTS=True -D CMAKE_BUILD_TYPE=Release
+#workaround false positive with gcc release  myproject_WARNINGS_AS_ERRORS=Off 
+RUN cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DBUILD_TESTS=True -D CMAKE_BUILD_TYPE=Release -D  myproject_WARNINGS_AS_ERRORS=Off 
 
 RUN cmake --build .
 
