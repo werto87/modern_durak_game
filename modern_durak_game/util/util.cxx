@@ -1,5 +1,5 @@
-#include "example_of_a_game_server/util/util.hxx"
-#include "example_of_a_game_server/game/logic/allowedMoves.hxx"
+#include "modern_durak_game/util/util.hxx"
+#include "modern_durak_game/game/logic/allowedMoves.hxx"
 #include <durak_computer_controlled_opponent/database.hxx>
 #include <login_matchmaking_game_shared/matchmakingGameSerialization.hxx>
 #include <modern_durak_game_option/userDefinedGameOption.hxx>

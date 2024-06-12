@@ -1,9 +1,9 @@
-#include "example_of_a_game_server/game/logic/game.hxx"
+#include "modern_durak_game/game/logic/game.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
-#include "example_of_a_game_server/game/logic/allowedMoves.hxx"
-#include "example_of_a_game_server/game/logic/gameAllowedTypes.hxx"
-#include "example_of_a_game_server/server/user.hxx"
-#include "example_of_a_game_server/util/util.hxx"
+#include "modern_durak_game/game/logic/allowedMoves.hxx"
+#include "modern_durak_game/game/logic/gameAllowedTypes.hxx"
+#include "modern_durak_game/server/user.hxx"
+#include "modern_durak_game/util/util.hxx"
 #include <algorithm>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>

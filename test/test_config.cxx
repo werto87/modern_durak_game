@@ -1,7 +1,7 @@
 //
 // Created by walde on 2/11/24.
 //
-#include "example_of_a_game_server/util/util.hxx"
+#include "modern_durak_game/util/util.hxx"
 #include "test/constant.hxx"
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch.hpp>

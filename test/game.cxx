@@ -1,8 +1,8 @@
-#include "example_of_a_game_server/game/logic/game.hxx"
+#include "modern_durak_game/game/logic/game.hxx"
 #include "constant.hxx"
 #include "durak_computer_controlled_opponent/database.hxx"
-#include "example_of_a_game_server/server/server.hxx"
-#include "example_of_a_game_server/util/util.hxx"
+#include "modern_durak_game/server/server.hxx"
+#include "modern_durak_game/util/util.hxx"
 #include <catch2/catch.hpp>
 #include <confu_json/to_json.hxx>
 #include <durak/card.hxx>

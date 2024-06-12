@@ -1,10 +1,10 @@
-#include "server.hxx"
-#include "boost/asio/experimental/awaitable_operators.hpp"
-#include "example_of_a_game_server/util/util.hxx"
+#include "modern_durak_game/server/server.hxx"
+#include "modern_durak_game/game/logic/gameAllowedTypes.hxx"
+#include "modern_durak_game/util/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/this_coro.hpp>
-#include <example_of_a_game_server/game/logic/gameAllowedTypes.hxx>
 #include <iostream>
 #include <memory>
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>

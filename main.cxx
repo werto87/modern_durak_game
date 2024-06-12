@@ -1,5 +1,5 @@
-#include "example_of_a_game_server/server/server.hxx"
-#include "example_of_a_game_server/util/util.hxx"
+#include "modern_durak_game/server/server.hxx"
+#include "modern_durak_game/util/util.hxx"
 #include <Corrade/Utility/Arguments.h>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/json/src.hpp>

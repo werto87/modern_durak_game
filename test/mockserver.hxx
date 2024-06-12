@@ -1,8 +1,8 @@
 #ifndef FB5474CE_322D_4D7A_B298_185229E7B05A
 #define FB5474CE_322D_4D7A_B298_185229E7B05A
 
-#include "example_of_a_game_server/server/myWebsocket.hxx"
-#include "example_of_a_game_server/util/util.hxx"
+#include "modern_durak_game/server/myWebsocket.hxx"
+#include "modern_durak_game/util/util.hxx"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -20,17 +20,17 @@ typedef boost::asio::basic_stream_socket<boost::asio::ip::tcp, boost::asio::use_
 
 struct MockserverOption
 {
-  std::optional<std::string> disconnectOnMessage{};
-  std::map<std::string, std::string> requestResponse{};
-  std::map<std::string, std::string> requestStartsWithResponse{};
+  std::optional<std::string> disconnectOnMessage {};
+  std::map<std::string, std::string> requestResponse {};
+  std::map<std::string, std::string> requestStartsWithResponse {};
 };
 
 struct Mockserver
 {
-  Mockserver (boost::asio::ip::tcp::endpoint endpoint, MockserverOption const &mockserverOption_, std::string loggingName_ = {}, fmt::text_style loggingTextStyleForName_ = {}, std::string id_ = {}) : mockserverOption{ mockserverOption_ }
+  Mockserver (boost::asio::ip::tcp::endpoint endpoint, MockserverOption const &mockserverOption_, std::string loggingName_ = {}, fmt::text_style loggingTextStyleForName_ = {}, std::string id_ = {}) : mockserverOption { mockserverOption_ }
   {
     co_spawn (ioContext, listener (endpoint, loggingName_, loggingTextStyleForName_, id_), printException);
-    thread = std::thread{ [this] () { ioContext.run (); } };
+    thread = std::thread { [this] () { ioContext.run (); } };
   }
 
   ~Mockserver ()
@@ -54,13 +54,13 @@ struct Mockserver
           {
             using namespace boost::asio::experimental::awaitable_operators;
             auto socket = co_await (acceptor.async_accept ());
-            auto connection = std::make_shared<Websocket> (Websocket{ std::move (socket) });
+            auto connection = std::make_shared<Websocket> (Websocket { std::move (socket) });
             connection->set_option (websocket::stream_base::timeout::suggested (role_type::server));
             connection->set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
             co_await connection->async_accept ();
-            websockets.emplace_back (MyWebsocket<Websocket>{ std::move (connection), loggingName_, loggingTextStyleForName_, id_ });
+            websockets.emplace_back (MyWebsocket<Websocket> { std::move (connection), loggingName_, loggingTextStyleForName_, id_ });
             std::list<MyWebsocket<Websocket> >::iterator websocket = std::prev (websockets.end ());
-            boost::asio::co_spawn (executor, websocket->readLoop ([websocket, &_mockserverOption = mockserverOption, &_ioContext=ioContext] (const std::string &msg) mutable {
+            boost::asio::co_spawn (executor, websocket->readLoop ([websocket, &_mockserverOption = mockserverOption, &_ioContext = ioContext] (std::string const &msg) mutable {
               if (_mockserverOption.disconnectOnMessage && _mockserverOption.disconnectOnMessage.value () == msg)
                 {
                   _ioContext.stop ();
@@ -99,11 +99,11 @@ struct Mockserver
     for (auto &websocket : websockets)
       co_await websocket.async_close ();
   }
-  MockserverOption mockserverOption{};
+  MockserverOption mockserverOption {};
   bool shouldRun = true;
   boost::asio::io_context ioContext;
-  std::thread thread{};
-  std::list<MyWebsocket<Websocket> > websockets{ {} };
+  std::thread thread {};
+  std::list<MyWebsocket<Websocket> > websockets { {} };
 };
 
 #endif /* FB5474CE_322D_4D7A_B298_185229E7B05A */
