@@ -24,7 +24,7 @@ RUN ./create_combination_database
 
 RUN test/_test -d yes --order lex
 
-FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2024_06_12_10_00_50
+FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2024_06_13_07_30_51 
 
 COPY --from=BUILD /home/build_user/modern_durak_game/build/run_server /home/build_user/modern_durak_game/modern_durak_game
 
