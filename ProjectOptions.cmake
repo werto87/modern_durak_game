@@ -15,6 +15,7 @@ macro(myproject_setup_options)
     option(myproject_ENABLE_SANITIZER_MEMORY "Enable memory sanitizer" OFF)
     option(myproject_ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
     option(myproject_ENABLE_CPPCHECK "Enable cpp-check analysis" OFF)
+    option(myproject_ENABLE_CLANG_BUILD_ANALYZER "Enable clang build analayzer to investigate compile time" OFF)
     option(myproject_ENABLE_CACHE "Enable ccache" ON)
 endmacro()
 

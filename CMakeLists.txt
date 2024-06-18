@@ -45,3 +45,9 @@ add_custom_command(
   COMMENT
     "copy compile_commands.json build to compile_commands.json project root so tools can find it more easily"
 )
+include(cmake/ClangBuildAnalyzer.cmake)
+IF (myproject_ENABLE_CLANG_BUILD_ANALYZER)
+        myproject_enable_clang_build_analyzer(run_server)
+ENDIF ()
+
+
