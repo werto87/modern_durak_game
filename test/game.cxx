@@ -109,7 +109,7 @@ TEST_CASE ("calcNextMove fresh round", "[game]")
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+  auto result = nextActionsAndResults (actions, durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes));
   SECTION ("attack moves")
   {
     auto playerRole = durak::PlayerRole::attack;
@@ -143,7 +143,7 @@ TEST_CASE ("calcNextMove first card played", "[game]")
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+  auto result = nextActionsAndResults (actions, durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
@@ -178,7 +178,7 @@ TEST_CASE ("calcNextMove first card played and defended", "[game]")
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+  auto result = nextActionsAndResults (actions, durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes));
   SECTION ("attack moves pass")
   {
     auto playerRole = durak::PlayerRole::attack;
@@ -214,7 +214,7 @@ TEST_CASE ("calcNextMove first card, defended, attack pass", "[game]")
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+  auto result = nextActionsAndResults (actions, durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
@@ -248,7 +248,7 @@ TEST_CASE ("calcNextMove first card, defended has to take cards", "[game]")
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+  auto result = nextActionsAndResults (actions, durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;
@@ -284,7 +284,7 @@ TEST_CASE ("calcNextMove first card, defended, second card", "[game]")
   auto someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, game.getTrump ()));
   REQUIRE (someRound.has_value ());
   auto actions = durak_computer_controlled_opponent::historyEventsToActionsCompressedCards (game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (game));
-  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+  auto result = nextActionsAndResults (actions, durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes));
   SECTION ("defend moves")
   {
     auto playerRole = durak::PlayerRole::defend;

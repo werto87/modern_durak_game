@@ -20,7 +20,7 @@ class Project(ConanFile):
         self.requires("boost/[<2]")
         self.requires("confu_json/[>=1.0.1 <2]")
         self.requires("sml/1.1.5")
-        self.requires("durak_computer_controlled_opponent/1.0.1")
+        self.requires("durak_computer_controlled_opponent/2.0.9")
         self.requires("confu_soci/[<1]")
         self.requires("corrade/2020.06")
         self.requires("durak/1.0.5", force=True)

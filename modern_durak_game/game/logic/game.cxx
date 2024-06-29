@@ -723,14 +723,14 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
           auto const &someRound = confu_soci::findStruct<database::Round> (sql, "gameState", database::gameStateAsString ({ attackCardsCompressed, defendCardsCompressed }, gameDependencies.game.getTrump ()));
           if (someRound)
             {
-              if (someRound->data.empty ())
+              if (someRound->nodes.empty ())
                 {
                   user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakNextMoveError { "Unsupported card combination." }));
                 }
               else
                 {
                   auto const &actions = historyEventsToActionsCompressedCards (gameDependencies.game.getHistory (), calcCardsAndCompressedCardsForAttackAndDefend (gameDependencies.game));
-                  auto result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree (binaryToSmallMemoryTreeData (someRound.value ())));
+                  auto const &result = nextActionsAndResults (actions, small_memory_tree::SmallMemoryTree { durak_computer_controlled_opponent::database::binaryToSmallMemoryTree (someRound.value ().nodes) });
                   auto const &actionForRole = nextActionForRole (result, playerRole);
                   auto const &allowedMoves = calculateAllowedMovesWithPassState (gameDependencies.game, playerRole, gameDependencies.passAttackAndAssist);
                   auto const &calculatedNextMove = calcNextMove (actionForRole, allowedMoves, playerRole, compressedCardsForDefend, compressedCardsForAttack, currentState);
