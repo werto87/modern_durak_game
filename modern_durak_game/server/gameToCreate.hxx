@@ -1,12 +1,12 @@
 #ifndef C8BDF7DD_992C_419F_968A_70034261F4D4
 #define C8BDF7DD_992C_419F_968A_70034261F4D4
 
-#include "myWebsocket.hxx"
 #include "user.hxx"
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <login_matchmaking_game_shared/matchmakingGameSerialization.hxx>
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>
+#include <my_web_socket/myWebSocket.hxx>
 #include <string>
 
 struct GameToCreate

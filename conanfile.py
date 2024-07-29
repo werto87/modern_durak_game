@@ -24,3 +24,4 @@ class Project(ConanFile):
         self.requires("confu_soci/[<1]")
         self.requires("corrade/2020.06")
         self.requires("modern_durak_game_shared/latest")
+        self.requires("my_web_socket/0.0.7")

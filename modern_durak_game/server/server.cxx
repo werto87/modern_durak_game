@@ -110,17 +110,17 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
       try
         {
           auto socket = co_await acceptor.async_accept ();
-          auto connection = std::make_shared<Websocket> (Websocket { std::move (socket) });
-          connection->set_option (websocket::stream_base::timeout::suggested (role_type::server));
-          connection->set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
-          co_await connection->async_accept ();
+          auto connection = my_web_socket::WebSocket { std::move (socket) };
+          connection.set_option (websocket::stream_base::timeout::suggested (role_type::server));
+          connection.set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
+          co_await connection.async_accept ();
           static size_t id = 0;
-          auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket> { connection, "UserToGameViaMatchmaking", fmt::fg (fmt::color::red), std::to_string (id++) });
+          auto myWebSocket = std::make_shared<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > (my_web_socket::MyWebSocket<my_web_socket::WebSocket> { std::move (connection), "UserToGameViaMatchmaking", fmt::fg (fmt::color::red), std::to_string (id++) });
           auto accountName = std::make_shared<std::optional<std::string> > ();
           using namespace boost::asio::experimental::awaitable_operators;
           tcp::resolver resolv { ioContext };
           auto resolvedGameToMatchmakingEndpoint = co_await resolv.async_resolve (ip::tcp::v4 (), matchmakingHost, matchmakingPort, use_awaitable);
-          co_spawn (ioContext, myWebsocket->readLoop ([myWebsocket, &_games = games, &_gamesToCreate = gamesToCreate, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (std::string const &msg) mutable {
+          co_spawn (ioContext, myWebSocket->readLoop ([myWebSocket, &_games = games, &_gamesToCreate = gamesToCreate, accountName, &ioContext, gameToMatchmakingEndpoint = resolvedGameToMatchmakingEndpoint->endpoint (), databasePath] (std::string const &msg) mutable {
             std::vector<std::string> splitMessage {};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -132,14 +132,14 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                     auto connectToGame = stringToObject<matchmaking_game::ConnectToGame> (objectAsString);
                     if (auto gameToCreate = std::ranges::find (_gamesToCreate, connectToGame.gameName, [] (GameToCreate const &gameToCreate_) { return gameToCreate_.gameName; }); gameToCreate != _gamesToCreate.end ())
                       {
-                        if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebsocket] (std::string const &_msg) { myWebsocket->sendMessage (_msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
+                        if (auto connectToGameError = gameToCreate->tryToAddUser ({ connectToGame.accountName, [myWebSocket] (std::string const &_msg) { myWebSocket->queueMessage (_msg); }, std::make_shared<boost::asio::system_timer> (ioContext) }))
                           {
-                            myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { connectToGameError.value () }));
+                            myWebSocket->queueMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { connectToGameError.value () }));
                           }
                         else
                           {
                             *accountName = connectToGame.accountName;
-                            myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameSuccess {}));
+                            myWebSocket->queueMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameSuccess {}));
                           }
                         if (gameToCreate->allUsersConnected ())
                           {
@@ -154,13 +154,13 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                               }
                             else
                               {
-                                myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { gameOption.error () }));
+                                myWebSocket->queueMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { gameOption.error () }));
                               }
                           }
                       }
                     else
                       {
-                        myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { "Could not find a game with game name: '" + connectToGame.gameName + "'" }));
+                        myWebSocket->queueMessage (objectToStringWithObjectName (matchmaking_game::ConnectToGameError { "Could not find a game with game name: '" + connectToGame.gameName + "'" }));
                       }
                   }
                 else if (accountName && accountName->has_value ())
@@ -169,14 +169,14 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                       {
                         if (auto const &error = game->processEvent (msg, accountName->value ()))
                           {
-                            myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::UnhandledEventError { msg, error.value () }));
+                            myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::UnhandledEventError { msg, error.value () }));
                           }
                       }
                   }
                 else if (accountName && not accountName->has_value ())
                   {
                     bool typeFound = false;
-                    boost::hana::for_each (shared_class::gameTypes, [&] (const auto &x) {
+                    boost::hana::for_each (shared_class::gameTypes, [&] (auto const &x) {
                       if (typeToSearch + "Error" == confu_json::type_name<typename std::decay<decltype (x)>::type> ())
                         {
                           typeFound = true;
@@ -184,7 +184,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                             {
                               auto errorToSend = std::decay_t<decltype (x)> {};
                               errorToSend.error = "Account name not set please call: ConnectToGame with account name and game name";
-                              myWebsocket->sendMessage (objectToStringWithObjectName (errorToSend));
+                              myWebSocket->queueMessage (objectToStringWithObjectName (errorToSend));
                             }
                           return;
                         }
@@ -192,7 +192,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
                     if (not typeFound) std::cout << "could not find a match for typeToSearch in shared_class::gameTypes or matchmaking_game::gameMessages '" << typeToSearch << "'" << std::endl;
                   }
               }
-          }) && myWebsocket->writeLoop (),
+          }) && myWebSocket->writeLoop (),
                     [&_games = games, accountName] (auto eptr) {
                       printException (eptr);
                       if (accountName && accountName->has_value ())
@@ -233,14 +233,14 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
       try
         {
           auto socket = co_await acceptor.async_accept ();
-          auto connection = std::make_shared<Websocket> (Websocket { std::move (socket) });
-          connection->set_option (websocket::stream_base::timeout::suggested (role_type::server));
-          connection->set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
-          co_await connection->async_accept ();
+          auto connection = my_web_socket::WebSocket { std::move (socket) };
+          connection.set_option (websocket::stream_base::timeout::suggested (role_type::server));
+          connection.set_option (websocket::stream_base::decorator ([] (websocket::response_type &res) { res.set (http::field::server, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-server-async"); }));
+          co_await connection.async_accept ();
           static size_t id = 0;
-          auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket> { connection, "MatchmakingToGame", fmt::fg (fmt::color::blue_violet), std::to_string (id++) });
+          auto myWebSocket = std::make_shared<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > (my_web_socket::MyWebSocket<my_web_socket::WebSocket> { std::move (connection), "MatchmakingToGame", fmt::fg (fmt::color::blue_violet), std::to_string (id++) });
           using namespace boost::asio::experimental::awaitable_operators;
-          co_spawn (executor, myWebsocket->readLoop ([myWebsocket, &_gamesToCreate = gamesToCreate] (std::string const &msg) {
+          co_spawn (executor, myWebSocket->readLoop ([myWebSocket, &_gamesToCreate = gamesToCreate] (std::string const &msg) {
             std::vector<std::string> splitMessage {};
             boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
             if (splitMessage.size () == 2)
@@ -251,7 +251,7 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
                   {
                     // TODO this should be create game success and not start game success because game is not started it is waiting for user
                     auto &gameToCreate = _gamesToCreate.emplace_back (stringToObject<matchmaking_game::StartGame> (objectAsString));
-                    myWebsocket->sendMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess { gameToCreate.gameName }));
+                    myWebSocket->queueMessage (objectToStringWithObjectName (matchmaking_game::StartGameSuccess { gameToCreate.gameName }));
                   }
                 else
                   std::cout << "not supported event msg '" << msg << "'" << std::endl;
@@ -260,8 +260,8 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
               {
                 std::cout << "Not supported event. event syntax: EventName|JsonObject. Not handled event: '" << msg << "'" << std::endl;
               }
-          }) && myWebsocket->writeLoop (),
-                    [myWebsocket] (auto eptr) { printException (eptr); });
+          }) && myWebSocket->writeLoop (),
+                    [myWebSocket] (auto eptr) { printException (eptr); });
         }
       catch (std::exception &e)
         {

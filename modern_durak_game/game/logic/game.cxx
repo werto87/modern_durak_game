@@ -225,16 +225,16 @@ auto const timerActive = [] (GameDependencies &gameDependencies) { return gameDe
 boost::asio::awaitable<void>
 sendGameOverToMatchmaking (matchmaking_game::GameOver gameOver, GameDependencies &gameDependencies)
 {
-  auto ws = std::make_shared<Websocket> (gameDependencies.ioContext);
-  co_await ws->next_layer ().async_connect (gameDependencies.gameToMatchmakingEndpoint);
-  ws->next_layer ().expires_never ();
-  ws->set_option (boost::beast::websocket::stream_base::timeout::suggested (boost::beast::role_type::client));
-  ws->set_option (boost::beast::websocket::stream_base::decorator ([] (boost::beast::websocket::request_type &req) { req.set (boost::beast::http::field::user_agent, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-client-async"); }));
-  co_await ws->async_handshake (gameDependencies.gameToMatchmakingEndpoint.address ().to_string () + std::to_string (gameDependencies.gameToMatchmakingEndpoint.port ()), "/");
+  auto connection = my_web_socket::WebSocket (gameDependencies.ioContext);
+  co_await connection.next_layer ().async_connect (gameDependencies.gameToMatchmakingEndpoint);
+  connection.next_layer ().expires_never ();
+  connection.set_option (boost::beast::websocket::stream_base::timeout::suggested (boost::beast::role_type::client));
+  connection.set_option (boost::beast::websocket::stream_base::decorator ([] (boost::beast::websocket::request_type &req) { req.set (boost::beast::http::field::user_agent, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-client-async"); }));
+  co_await connection.async_handshake (gameDependencies.gameToMatchmakingEndpoint.address ().to_string () + std::to_string (gameDependencies.gameToMatchmakingEndpoint.port ()), "/");
   static size_t id = 0;
-  auto myWebsocket = MyWebsocket<Websocket> { std::move (ws), "sendGameOverToMatchmaking", fmt::fg (fmt::color::cornflower_blue), std::to_string (id++) };
-  co_await myWebsocket.async_write_one_message (objectToStringWithObjectName (gameOver));
-  auto msg = co_await myWebsocket.async_read_one_message ();
+  auto myWebSocket = my_web_socket::MyWebSocket<my_web_socket::WebSocket> { std::move (connection), "sendGameOverToMatchmaking", fmt::fg (fmt::color::cornflower_blue), std::to_string (id++) };
+  co_await myWebSocket.async_write_one_message (objectToStringWithObjectName (gameOver));
+  auto msg = co_await myWebSocket.async_read_one_message ();
   std::vector<std::string> splitMessage {};
   boost::algorithm::split (splitMessage, msg, boost::is_any_of ("|"));
   if (splitMessage.size () == 2)
@@ -442,8 +442,7 @@ auto const resumeTimerHandler = [] (GameDependencies &gameDependencies, resumeTi
             // abort ();
           }
         user.pausedTime = {};
-        co_spawn (
-            user.timer->get_executor (), [playersToResume = std::move (playersToResume), &gameDependencies, &user] () { return runTimer (user.timer, user.accountName, gameDependencies); }, printException);
+        co_spawn (user.timer->get_executor (), [playersToResume = std::move (playersToResume), &gameDependencies, &user] () { return runTimer (user.timer, user.accountName, gameDependencies); }, printException);
       }
   });
 };

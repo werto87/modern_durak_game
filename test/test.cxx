@@ -1,4 +1,3 @@
-#include "mockserver.hxx"
 #include "modern_durak_game/server/server.hxx"
 #include "modern_durak_game/util/util.hxx"
 #include "test/constant.hxx"
@@ -15,6 +14,7 @@
 #include <exception>
 #include <iostream>
 #include <modern_durak_game_option/userDefinedGameOption.hxx>
+#include <my_web_socket/mockServer.hxx>
 #include <sstream>
 #include <stdexcept>
 
@@ -23,20 +23,20 @@ connectWebsocket (auto handleMsgFromGame, boost::asio::io_context &ioContext, bo
 {
   using namespace boost::asio;
   using namespace boost::beast;
-  auto connection = std::make_shared<Websocket> (Websocket { ioContext });
-  get_lowest_layer (*connection).expires_never ();
-  connection->set_option (websocket::stream_base::timeout::suggested (role_type::client));
-  connection->set_option (websocket::stream_base::decorator ([] (websocket::request_type &req) { req.set (http::field::user_agent, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-client-async-ssl"); }));
-  co_await get_lowest_layer (*connection).async_connect (endpoint, use_awaitable);
-  co_await connection->async_handshake ("localhost:" + std::to_string (endpoint.port ()), "/", use_awaitable);
+  auto connection = my_web_socket::WebSocket { ioContext };
+  get_lowest_layer (connection).expires_never ();
+  connection.set_option (websocket::stream_base::timeout::suggested (role_type::client));
+  connection.set_option (websocket::stream_base::decorator ([] (websocket::request_type &req) { req.set (http::field::user_agent, std::string (BOOST_BEAST_VERSION_STRING) + " websocket-client-async-ssl"); }));
+  co_await get_lowest_layer (connection).async_connect (endpoint, use_awaitable);
+  co_await connection.async_handshake ("localhost:" + std::to_string (endpoint.port ()), "/", use_awaitable);
   static size_t id = 0;
-  auto myWebsocket = std::make_shared<MyWebsocket<Websocket> > (MyWebsocket<Websocket> { std::move (connection), connectionName ? connectionName.value () : std::string { "connectWebsocket" }, fmt::fg (fmt::color::orange_red), std::to_string (id++) });
+  auto myWebSocket = std::make_shared<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > (my_web_socket::MyWebSocket<my_web_socket::WebSocket> { std::move (connection), connectionName ? connectionName.value () : std::string { "connectWebsocket" }, fmt::fg (fmt::color::orange_red), std::to_string (id++) });
   for (auto const &message : sendMessageBeforeStartRead)
     {
-      co_await myWebsocket->async_write_one_message (message);
+      co_await myWebSocket->async_write_one_message (message);
     }
   using namespace boost::asio::experimental::awaitable_operators;
-  co_await (myWebsocket->readLoop ([myWebsocket, handleMsgFromGame, &ioContext] (std::string const &msg) { handleMsgFromGame (ioContext, msg, myWebsocket); }) && myWebsocket->writeLoop ());
+  co_await (myWebSocket->readLoop ([myWebSocket, handleMsgFromGame, &ioContext] (std::string const &msg) { handleMsgFromGame (ioContext, msg, myWebSocket); }) && myWebSocket->writeLoop ());
 }
 
 TEST_CASE ("send message to game", "[game]")
@@ -51,11 +51,11 @@ TEST_CASE ("send message to game", "[game]")
   auto matchmakingToGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
   auto gameToMatchmaking = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), boost::numeric_cast<unsigned short> (std::stoul (DEFAULT_PORT_GAME_TO_MATCHMAKING)) };
   // clang-format off
-  auto matchmakingGame = Mockserver{ gameToMatchmaking, { .requestStartsWithResponse = { { R"foo(GameOver)foo", R"foo(GameOverSuccess|{})foo" } } }, "MOCK_matchmaking_game", fmt::fg (fmt::color::violet), "0" };
+  auto matchmakingGame = my_web_socket::MockServer{ gameToMatchmaking, { .requestStartsWithResponse = { { R"foo(GameOver)foo", R"foo(GameOverSuccess|{})foo" } } }, "MOCK_matchmaking_game", fmt::fg (fmt::color::violet), "0" };
   // clang-format on
   co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
   auto gameName = std::string {};
-  auto handleMsgFromGame = [&gameName] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> >) {
+  auto handleMsgFromGame = [&gameName] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> >) {
     if (msg.starts_with ("StartGameSuccess"))
       {
         std::vector<std::string> splitMessage {};
@@ -89,10 +89,10 @@ TEST_CASE ("send message to game", "[game]")
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto leaveGameSuccessCalledOnUser2 = false;
     auto user1Logic = [] (auto &&, auto &&, auto &&) {};
-    auto user2Logic = [&leaveGameSuccessCalledOnUser2] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto user2Logic = [&leaveGameSuccessCalledOnUser2] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakLeaveGame {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakLeaveGame {}));
         }
       if (msg.starts_with ("LeaveGameSuccess"))
         {
@@ -124,10 +124,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto durakAttackPassError = false;
-    auto someMsg = [&durakAttackPassError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&durakAttackPassError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttackPass {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakAttackPass {}));
         }
       if (msg.starts_with ("DurakAttackPassError"))
         {
@@ -160,10 +160,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto durakAssistPassError = false;
-    auto someMsg = [&durakAssistPassError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&durakAssistPassError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAssistPass {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakAssistPass {}));
         }
       if (msg.starts_with ("DurakAssistPassError"))
         {
@@ -196,10 +196,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto durakDefendPassError = false;
-    auto someMsg = [&durakDefendPassError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&durakDefendPassError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakDefendPass {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakDefendPass {}));
         }
       if (msg.starts_with ("DurakDefendPassError"))
         {
@@ -232,10 +232,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto durakDefendError = false;
-    auto someMsg = [&durakDefendError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&durakDefendError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakDefend {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakDefend {}));
         }
       if (msg.starts_with ("DurakDefendError"))
         {
@@ -268,10 +268,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto durakAttackError = false;
-    auto someMsg = [&durakAttackError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&durakAttackError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttack {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakAttack {}));
         }
       if (msg.starts_with ("DurakAttackError"))
         {
@@ -304,10 +304,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto unhandledEventError = false;
-    auto someMsg = [&unhandledEventError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&unhandledEventError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("ConnectToGameSuccess"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswer {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakAskDefendWantToTakeCardsAnswer {}));
         }
       if (msg.starts_with ("UnhandledEventError"))
         {
@@ -340,10 +340,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto unhandledEventError = false;
-    auto someMsg = [&unhandledEventError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&unhandledEventError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("GameData"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakNextMove {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakNextMove {}));
         }
       if (msg.starts_with ("DurakNextMoveSuccess"))
         {
@@ -377,7 +377,7 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     auto playerCount = size_t {};
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&playerCount] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> >) {
+    auto logic = [&playerCount] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> >) {
       if (msg.starts_with ("GameData"))
         {
           std::vector<std::string> splitMessage {};
@@ -418,10 +418,10 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
     auto unhandledEventError = false;
-    auto someMsg = [&unhandledEventError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > myWebsocket) {
+    auto someMsg = [&unhandledEventError] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > myWebSocket) {
       if (msg.starts_with ("GameData"))
         {
-          myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakNextMove {}));
+          myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakNextMove {}));
         }
       if (msg.starts_with ("DurakNextMoveSuccess"))
         {
@@ -457,7 +457,7 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     auto leaveCalled = false;
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&leaveCalled] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> >) {
+    auto logic = [&leaveCalled] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> >) {
       if (msg == "LeaveGameSuccess|{}")
         {
           leaveCalled = true;
@@ -488,7 +488,7 @@ TEST_CASE ("send message to game", "[game]")
     ioContext.reset ();
     auto cardBeaten = false;
     co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, DEFAULT_ADDRESS_OF_MATCHMAKING, DEFAULT_PORT_GAME_TO_MATCHMAKING, DEFAULT_DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
-    auto logic = [&cardBeaten] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<MyWebsocket<Websocket> > const &myWebsocket) {
+    auto logic = [&cardBeaten] (boost::asio::io_context &_ioContext, std::string const &msg, std::shared_ptr<my_web_socket::MyWebSocket<my_web_socket::WebSocket> > const &myWebSocket) {
       if (msg.starts_with ("GameData"))
         {
           std::vector<std::string> splitMessage {};
@@ -504,7 +504,7 @@ TEST_CASE ("send message to game", "[game]")
                 }
               else
                 {
-                  myWebsocket->sendMessage (objectToStringWithObjectName (shared_class::DurakAttack { { { 3, durak::Type::clubs } } }));
+                  myWebSocket->queueMessage (objectToStringWithObjectName (shared_class::DurakAttack { { { 3, durak::Type::clubs } } }));
                 }
             }
         }

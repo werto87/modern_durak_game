@@ -21,6 +21,7 @@ find_package(magic_enum)
 find_package(Corrade)
 find_package(durak)
 find_package(modern_durak_game_shared)
+find_package(my_web_socket)
 find_package(modern_durak_game_option)
 
 
@@ -34,6 +35,7 @@ target_link_libraries(modern_durak_game PUBLIC
         boost::boost Corrade::Corrade
         durak::durak
         modern_durak_game_option::modern_durak_game_option
+        my_web_socket::my_web_socket
         )
 
 
