@@ -1,4 +1,4 @@
-FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2024_06_12_09_54_36 as BUILD
+FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2024_06_12_09_54_36 AS build
 
 COPY cmake /home/build_user/modern_durak_game/cmake
 COPY modern_durak_game /home/build_user/modern_durak_game/modern_durak_game
@@ -26,8 +26,8 @@ RUN test/_test -d yes --order lex
 
 FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2024_06_13_07_30_51 
 
-COPY --from=BUILD /home/build_user/modern_durak_game/build/run_server /home/build_user/modern_durak_game/modern_durak_game
+COPY --from=build /home/build_user/modern_durak_game/build/run_server /home/build_user/modern_durak_game/modern_durak_game
 
-COPY --from=BUILD /home/build_user/modern_durak_game/test/database/combination.db /home/build_user/modern_durak_game/build/combination.db
+COPY --from=build /home/build_user/modern_durak_game/test/database/combination.db /home/build_user/modern_durak_game/build/combination.db
 
 CMD [ "/home/build_user/modern_durak_game/modern_durak_game" ]
