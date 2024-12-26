@@ -12,7 +12,6 @@ class Project(ConanFile):
 
     def configure(self):
         self.options["catch2"].with_benchmark = True
-        self.options["boost"].header_only = True
 
     def requirements(self):
         self.requires("catch2/2.13.7")
@@ -20,8 +19,8 @@ class Project(ConanFile):
         self.requires("boost/[<2]")
         self.requires("confu_json/[>=1.0.1 <2]")
         self.requires("sml/1.1.5")
-        self.requires("durak_computer_controlled_opponent/2.1.0")
+        self.requires("durak_computer_controlled_opponent/2.2.0")
         self.requires("confu_soci/[<1]")
         self.requires("corrade/2020.06")
         self.requires("modern_durak_game_shared/latest")
-        self.requires("my_web_socket/0.0.7")
+        self.requires("my_web_socket/0.0.9")
