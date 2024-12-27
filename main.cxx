@@ -9,6 +9,7 @@
 #include <durak_computer_controlled_opponent/solve.hxx>
 #include <exception>
 #include <iostream>
+#include <my_web_socket/coSpawnPrintException.hxx>
 #include <stdexcept>
 #include <string>
 auto const DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING = std::string { "3232" };
@@ -56,7 +57,7 @@ main (int argc, char **argv)
 
           auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), PORT_USER_TO_GAME_VIA_MATCHMAKING };
           auto matchmakingToGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), PORT_MATCHMAKING_TO_GAME };
-          co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, ADDRESS_MATCHMAKING, PORT_GAME_TO_MATCHMAKING, DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), printException);
+          co_spawn (ioContext, server.listenerUserToGameViaMatchmaking (userToGameViaMatchmaking, ioContext, ADDRESS_MATCHMAKING, PORT_GAME_TO_MATCHMAKING, DATABASE_PATH) && server.listenerMatchmakingToGame (matchmakingToGame), my_web_socket::printException);
           ioContext.run ();
         }
       catch (std::exception &e)

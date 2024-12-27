@@ -34,6 +34,7 @@
 #include <iostream>
 #include <login_matchmaking_game_shared/matchmakingGameSerialization.hxx>
 #include <magic_enum/magic_enum.hpp>
+#include <my_web_socket/coSpawnPrintException.hxx>
 #include <optional>
 #include <queue>
 #include <stdexcept>
@@ -288,7 +289,7 @@ auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, Gam
       });
     }
   auto gameOver = matchmaking_game::GameOver { gameDependencies.gameName, gameDependencies.isRanked, std::move (winners), std::move (losers), std::move (draws) };
-  co_spawn (gameDependencies.ioContext, sendGameOverToMatchmaking (std::move (gameOver), gameDependencies), printException);
+  co_spawn (gameDependencies.ioContext, sendGameOverToMatchmaking (std::move (gameOver), gameDependencies), my_web_socket::printException);
 };
 
 void
@@ -442,7 +443,7 @@ auto const resumeTimerHandler = [] (GameDependencies &gameDependencies, resumeTi
             // abort ();
           }
         user.pausedTime = {};
-        co_spawn (user.timer->get_executor (), [playersToResume = std::move (playersToResume), &gameDependencies, &user] () { return runTimer (user.timer, user.accountName, gameDependencies); }, printException);
+        co_spawn (user.timer->get_executor (), [playersToResume = std::move (playersToResume), &gameDependencies, &user] () { return runTimer (user.timer, user.accountName, gameDependencies); }, my_web_socket::printException);
       }
   });
 };

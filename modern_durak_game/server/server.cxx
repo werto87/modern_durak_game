@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <modern_durak_game_shared/modern_durak_game_shared.hxx>
+#include <my_web_socket/coSpawnPrintException.hxx>
 #include <optional>
 using namespace boost::beast;
 using namespace boost::asio;
@@ -194,7 +195,7 @@ Server::listenerUserToGameViaMatchmaking (boost::asio::ip::tcp::endpoint userToG
               }
           }) && myWebSocket->writeLoop (),
                     [&_games = games, accountName] (auto eptr) {
-                      printException (eptr);
+                      my_web_socket::printException (eptr);
                       if (accountName && accountName->has_value ())
                         {
                           if (auto gameItr = std::ranges::find_if (_games, [accountName] (Game const &game) { return accountName->has_value () && game.isUserInGame (accountName->value ()); }); gameItr != _games.end ())
@@ -261,7 +262,7 @@ Server::listenerMatchmakingToGame (boost::asio::ip::tcp::endpoint const &endpoin
                 std::cout << "Not supported event. event syntax: EventName|JsonObject. Not handled event: '" << msg << "'" << std::endl;
               }
           }) && myWebSocket->writeLoop (),
-                    [myWebSocket] (auto eptr) { printException (eptr); });
+                    [myWebSocket] (auto eptr) { my_web_socket::printException (eptr); });
         }
       catch (std::exception &e)
         {

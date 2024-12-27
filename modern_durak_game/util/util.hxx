@@ -44,26 +44,10 @@ stringToObject (std::string const &objectAsString)
       std::cout << "example json for '" << confu_json::type_name<T> () << confu_json::type_name<T> () << "': '" << objectToStringWithObjectName (T {}) << "'" << std::endl;
       throw;
     }
-
   return t;
 }
 
 size_t averageRating (std::vector<std::string> const &accountNames);
-
-void printExceptionHelper (std::exception_ptr eptr);
-
-template <class... Fs> struct overloaded : Fs...
-{
-  using Fs::operator()...;
-};
-
-template <class... Fs> overloaded (Fs...) -> overloaded<Fs...>;
-
-auto const printException1 = [] (std::exception_ptr eptr) { printExceptionHelper (eptr); };
-
-auto const printException2 = [] (std::exception_ptr eptr, auto) { printExceptionHelper (eptr); };
-
-auto const printException = overloaded { printException1, printException2 };
 
 void createCombinationDatabase (std::filesystem::path const &databasePath);
 
