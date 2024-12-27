@@ -16,7 +16,7 @@ class Project(ConanFile):
     def requirements(self):
         self.requires("catch2/2.13.7")
         self.requires("magic_enum/[>=0.9.5 <10]")
-        self.requires("boost/[<2]")
+        self.requires("boost/1.85.0",force=True)
         self.requires("confu_json/[>=1.0.1 <2]")
         self.requires("sml/1.1.5")
         self.requires("durak_computer_controlled_opponent/2.2.0")
