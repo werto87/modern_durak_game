@@ -12,9 +12,9 @@ class Project(ConanFile):
 
     def configure(self):
         self.options["catch2"].with_benchmark = True
-        self.options["my_web_socket"].log_co_spawn_print_exception = False
-        self.options["my_web_socket"].log_write = False
-        self.options["my_web_socket"].log_read = False
+        self.options["my_web_socket"].log_co_spawn_print_exception = True
+        self.options["my_web_socket"].log_write = True
+        self.options["my_web_socket"].log_read = True
 
     def requirements(self):
         self.requires("catch2/2.13.7")
