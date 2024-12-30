@@ -272,12 +272,12 @@ auto const handleGameOver = [] (boost::optional<durak::Player> const &durak, Gam
         if (user.accountName == durak)
           {
             user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakGameOverLose {}));
-            winners.push_back (user.accountName);
+            losers.push_back (user.accountName);
           }
         else
           {
             user.sendMsgToUser (objectToStringWithObjectName (shared_class::DurakGameOverWon {}));
-            losers.push_back (user.accountName);
+            winners.push_back (user.accountName);
           }
       });
     }
