@@ -21,7 +21,7 @@ class Project(ConanFile):
         self.requires("magic_enum/[>=0.9.5 <10]")
         self.requires("boost/1.86.0",force=True)
         self.requires("confu_json/[>=1.0.1 <2]")
-        self.requires("sml/1.1.5")
+        self.requires("sml/1.1.11")
         self.requires("durak_computer_controlled_opponent/2.2.0")
         self.requires("confu_soci/[<1]")
         self.requires("corrade/2020.06")
