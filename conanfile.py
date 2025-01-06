@@ -12,9 +12,9 @@ class Project(ConanFile):
 
     def configure(self):
         self.options["catch2"].with_benchmark = True
-        self.options["my_web_socket"].log_co_spawn_print_exception = True
-        self.options["my_web_socket"].log_write = True
-        self.options["my_web_socket"].log_read = True
+        # self.options["my_web_socket"].log_co_spawn_print_exception = True
+        # self.options["my_web_socket"].log_write = True
+        # self.options["my_web_socket"].log_read = True
 
     def requirements(self):
         self.requires("catch2/2.13.7")
@@ -26,4 +26,4 @@ class Project(ConanFile):
         self.requires("confu_soci/[<1]")
         self.requires("corrade/2020.06")
         self.requires("modern_durak_game_shared/latest")
-        self.requires("my_web_socket/0.0.9")
+        self.requires("my_web_socket/0.1.1")
