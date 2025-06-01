@@ -22,7 +22,7 @@ class Project(ConanFile):
         self.requires("boost/1.86.0",force=True)
         self.requires("confu_json/[>=1.1.1 <2]")
         self.requires("sml/1.1.8") #DO NOT CHANGE THIS. starting with version 1.1.9 process_event returns ins some cases false where before it returned true
-        self.requires("durak_computer_controlled_opponent/2.2.0")
+        self.requires("durak_computer_controlled_opponent/2.2.1")
         self.requires("confu_soci/[<1]")
         self.requires("corrade/2020.06")
         self.requires("modern_durak_game_shared/latest")
