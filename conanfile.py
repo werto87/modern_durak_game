@@ -24,6 +24,6 @@ class Project(ConanFile):
         self.requires("sml/1.1.8") #DO NOT CHANGE THIS. starting with version 1.1.9 process_event returns ins some cases false where before it returned true
         self.requires("durak_computer_controlled_opponent/2.2.1")
         self.requires("confu_soci/[<1]")
-        self.requires("corrade/2020.06")
+        self.requires("corrade/2025.06")
         self.requires("modern_durak_game_shared/latest")
         self.requires("my_web_socket/0.1.1")
