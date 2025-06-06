@@ -20,7 +20,7 @@ class Project(ConanFile):
         self.requires("catch2/2.13.7")
         self.requires("magic_enum/[>=0.9.5 <10]")
         self.requires("boost/1.86.0",force=True)
-        self.requires("confu_json/[>=1.1.1 <2]")
+        self.requires("confu_json/[>=1.1.1 <2]@modern-durak")
         self.requires("sml/1.1.8") #DO NOT CHANGE THIS. starting with version 1.1.9 process_event returns ins some cases false where before it returned true
         self.requires("durak_computer_controlled_opponent/2.2.1")
         self.requires("confu_soci/[<1]")
