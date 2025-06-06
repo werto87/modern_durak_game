@@ -1,4 +1,8 @@
-build
+build/*
+.cache/*
+.vscode
+game_db.session.sql
+template_db.session.sql
+compile_commands.json
+test/database/combination.db
 .ccls-cache
-.cache
-.github
