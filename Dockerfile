@@ -1,4 +1,4 @@
-FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2024_06_12_09_54_36 AS build
+FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base_devel_conan:2025_06_06_09_52_17 AS build
 
 COPY cmake /home/build_user/modern_durak_game/cmake
 COPY modern_durak_game /home/build_user/modern_durak_game/modern_durak_game
@@ -11,7 +11,10 @@ COPY ProjectOptions.cmake /home/build_user/modern_durak_game
 
 WORKDIR /home/build_user/modern_durak_game
 
-RUN sudo chown -R build_user /home/build_user && conan remote add modern_durak http://modern-durak.com:8081/artifactory/api/conan/conan-local && conan profile detect && conan remote login modern_durak read -p 'B2"bi%y@SQhqP~X' && conan install . --output-folder=build --settings compiler.cppstd=gnu23 --build=missing
+RUN sudo chown -R build_user /home/build_user &&\
+    conan remote add modern_durak http://modern-durak.com:8081/artifactory/api/conan/conan &&\
+    conan profile detect &&\
+    conan install . --output-folder=build --settings compiler.cppstd=gnu23 --build=missing
 
 WORKDIR /home/build_user/modern_durak_game/build
 
@@ -24,7 +27,7 @@ RUN ./create_combination_database
 
 RUN test/_test -d yes --order lex
 
-FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2024_06_13_07_30_51 
+FROM ghcr.io/werto87/arch_linux_docker_image/archlinux_base:2025_06_06_09_30_44
 
 COPY --from=build /home/build_user/modern_durak_game/build/run_server /home/build_user/modern_durak_game/modern_durak_game
 
