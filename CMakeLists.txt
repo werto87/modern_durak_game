@@ -32,6 +32,7 @@ target_compile_definitions(run_server PRIVATE
         # BOOST_ASIO_ENABLE_HANDLER_TRACKING
         CURRENT_BINARY_DIR="${CMAKE_BINARY_DIR}"
         )
+if(NOT CMAKE_GENERATOR MATCHES "Visual Studio")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_custom_target(copy_compile_commands_json ALL
                   DEPENDS ${CMAKE_SOURCE_DIR}/compile_commands.json)
@@ -44,9 +45,6 @@ add_custom_command(
   COMMENT
     "copy compile_commands.json build to compile_commands.json project root so tools can find it more easily"
 )
-include(cmake/ClangBuildAnalyzer.cmake)
-IF (myproject_ENABLE_CLANG_BUILD_ANALYZER)
-        myproject_enable_clang_build_analyzer(run_server)
-ENDIF ()
+endif()
 
 

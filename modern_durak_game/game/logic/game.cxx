@@ -714,7 +714,7 @@ nextMove (GameDependencies &gameDependencies, std::tuple<shared_class::DurakNext
         {
           using namespace durak;
           using namespace durak_computer_controlled_opponent;
-          soci::session sql (soci::sqlite3, gameDependencies.databasePath);
+          soci::session sql (soci::sqlite3, gameDependencies.databasePath.string());
           auto const [compressedCardsForAttack, compressedCardsForDefend, compressedCardsForAssist] = calcIdAndCompressedCardsForAttackAndDefend (gameDependencies.game);
           auto attackCardsCompressed = std::vector<uint8_t> {};
           std::ranges::transform (compressedCardsForAttack, std::back_inserter (attackCardsCompressed), [] (auto const &idAndCard) { return std::get<0> (idAndCard); });
@@ -835,21 +835,19 @@ auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boo
     }
 };
 
+template <typename T>
+constexpr auto makeEventError() {
+  if constexpr (std::same_as<T, shared_class::DurakAttackPassError>)
+    return shared_class::DurakAttackPassError {};
+  else
+    return shared_class::DurakAssistPassError {};
+}
+
 auto const doPass = [] (GameDependencies &gameDependencies, auto const &eventAndUser, boost::sml::back::process<pauseTimer, sendTimerEv> process_event) {
   auto [event, user] = eventAndUser;
   auto playerName = user.accountName;
   using eventType = typename std::decay<decltype (event)>::type;
-  using eventErrorType = typename std::decay<decltype ([&] {
-    if constexpr (std::same_as<eventType, shared_class::DurakAttackPass>)
-      {
-        return shared_class::DurakAttackPassError {};
-      }
-    else
-      {
-        return shared_class::DurakAssistPassError {};
-      }
-  }())>::type;
-
+  using eventErrorType = typename std::decay<decltype (makeEventError<eventType>())>::type;
   auto playerRole = gameDependencies.game.getRoleForName (playerName);
   if (gameDependencies.game.getAttackStarted ())
     {

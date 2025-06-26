@@ -3,10 +3,14 @@
 
 #include <boost/asio/any_io_executor.hpp>
 #include <filesystem>
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnull-dereference"
+#endif
 #include <boost/asio/ip/tcp.hpp>
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 #include <boost/optional/optional.hpp>
 #include <deque>
 #include <durak/game.hxx>

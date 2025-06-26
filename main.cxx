@@ -50,8 +50,8 @@ main (int argc, char **argv)
           signals.async_wait ([&] (auto, auto) { ioContext.stop (); });
           auto server = Server {};
           using namespace boost::asio::experimental::awaitable_operators;
-          auto const PORT_USER_TO_GAME_VIA_MATCHMAKING = boost::numeric_cast<u_int16_t> (std::stoul (args.value ("port-user-to-game-via-matchmaking")));
-          auto const PORT_MATCHMAKING_TO_GAME = boost::numeric_cast<u_int16_t> (std::stoul (args.value ("port-matchmaking-to-game")));
+          auto const PORT_USER_TO_GAME_VIA_MATCHMAKING = boost::numeric_cast<uint16_t> (std::stoul (args.value ("port-user-to-game-via-matchmaking")));
+          auto const PORT_MATCHMAKING_TO_GAME = boost::numeric_cast<uint16_t> (std::stoul (args.value ("port-matchmaking-to-game")));
           auto const PORT_GAME_TO_MATCHMAKING = args.value ("port-game-to-matchmaking");
           std::string ADDRESS_MATCHMAKING = args.value ("address-of-matchmaking");
 

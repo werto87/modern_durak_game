@@ -7,7 +7,7 @@
 
 namespace shared_class
 {
-class GameOption;
+struct GameOption;
 }
 
 template <typename TypeToSend>
