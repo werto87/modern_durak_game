@@ -47,9 +47,9 @@ TEST_CASE ("send message to game", "[game]")
   signals.async_wait ([&] (auto, auto) { ioContext.stop (); });
   auto server = Server {};
   using namespace boost::asio::experimental::awaitable_operators;
-  auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
-  auto matchmakingToGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
-  auto gameToMatchmaking = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), boost::numeric_cast<unsigned short> (std::stoul (DEFAULT_PORT_GAME_TO_MATCHMAKING)) };
+  auto userToGameViaMatchmaking = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+  auto matchmakingToGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+  auto gameToMatchmaking = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), boost::numeric_cast<unsigned short> (std::stoul (DEFAULT_PORT_GAME_TO_MATCHMAKING)) };
   // clang-format off
   auto matchmakingGame = my_web_socket::MockServer{ gameToMatchmaking, { .requestStartsWithResponse = { { R"foo(GameOver)foo", R"foo(GameOverSuccess|{})foo" } } }, "MOCK_matchmaking_game", fmt::fg (fmt::color::violet), "0" };
   // clang-format on
@@ -71,7 +71,7 @@ TEST_CASE ("send message to game", "[game]")
 
   SECTION ("DurakLeaveGame")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakLeaveGame81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -107,7 +107,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("DurakAttackPass")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakAttackPass81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -135,7 +135,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
       co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}), my_web_socket::printException);
       co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"DurakAttackPass81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}), my_web_socket::printException);
       ioContext.run_for (std::chrono::seconds { 5 });
@@ -143,7 +143,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("DurakAssistPass")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakAssistPass81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -171,7 +171,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"DurakAssistPass81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -179,7 +179,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("DurakDefendPass")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakDefendPass81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -207,7 +207,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"DurakDefendPass81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -215,7 +215,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("DurakDefend")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakDefend81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -243,7 +243,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"DurakDefend81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -251,7 +251,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("DurakAttack")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakAttack81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -279,7 +279,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"DurakAttack81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -287,7 +287,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("DurakAskDefendWantToTakeCardsAnswer")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"DurakAskDefendWantToTakeCardsAnswer81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -315,7 +315,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
       co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
       co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"DurakAskDefendWantToTakeCardsAnswer81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
       ioContext.run_for (std::chrono::seconds { 5 });
@@ -323,7 +323,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("NextMove")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"NextMove81b0117d-973b-469b-ac39-3bd49c23ef57","669454d5-b39b-44d6-b417-4740d6566ca8"};
@@ -351,7 +351,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"NextMove81b0117d-973b-469b-ac39-3bd49c23ef57","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -359,7 +359,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("ComputerControlledOpponent")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};
@@ -398,7 +398,7 @@ TEST_CASE ("send message to game", "[game]")
   SECTION ("NextMove 1vs3 attack")
   {
     using namespace durak;
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     startGame.players = { "NextMove" };
     auto gameOption = shared_class::GameOption {};
@@ -429,7 +429,7 @@ TEST_CASE ("send message to game", "[game]")
           _ioContext.stop ();
         }
     };
-    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
+    auto endpointUserViaMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_USER_TO_GAME_VIA_MATCHMAKING };
     co_spawn (ioContext, connectWebsocket (someMsg, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"NextMove","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     co_spawn (ioContext, connectWebsocket ([] (auto&&,auto&&,auto&&) {}, ioContext, endpointUserViaMatchmakingGame, std::vector<std::string>{{R"foo(ConnectToGame|{"accountName":"669454d5-b39b-44d6-b417-4740d6566ca8","gameName":")foo" +gameName +R"foo("})foo"}}),my_web_socket::printException);
     ioContext.run_for (std::chrono::seconds { 5 });
@@ -437,7 +437,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("ComputerControlledOpponent timer")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};
@@ -470,7 +470,7 @@ TEST_CASE ("send message to game", "[game]")
   }
   SECTION ("ComputerControlledOpponent next move")
   {
-    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { ip::tcp::v4 (), DEFAULT_PORT_MATCHMAKING_TO_GAME };
+    auto endpointMatchmakingGame = boost::asio::ip::tcp::endpoint { boost::asio::ip::make_address("127.0.0.1"), DEFAULT_PORT_MATCHMAKING_TO_GAME };
     auto startGame = matchmaking_game::StartGame {};
     // clang-format off
     startGame.players={"ComputerControlledOpponent81b0117d-973b-469b-ac39-3bd49c23ef57"};

@@ -837,7 +837,7 @@ auto const startAskAttackAndAssist = [] (GameDependencies &gameDependencies, boo
 
 template <typename T>
 constexpr auto makeEventError() {
-  if constexpr (std::same_as<T, shared_class::DurakAttackPassError>)
+  if constexpr (std::same_as<T, shared_class::DurakAttackPass>)
     return shared_class::DurakAttackPassError {};
   else
     return shared_class::DurakAssistPassError {};
