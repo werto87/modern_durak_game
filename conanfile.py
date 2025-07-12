@@ -17,8 +17,9 @@ class Project(ConanFile):
         self.options["my_web_socket"].log_read = True
 
     def requirements(self):
+        self.requires("durak/1.2.0",force=True)
         self.requires("catch2/2.13.7")
-        self.requires("magic_enum/[>=0.9.5 <10]")
+        self.requires("magic_enum/0.9.6")
         self.requires("boost/1.86.0",force=True)
         self.requires("confu_json/[>=1.1.1 <2]@modern-durak",force=True)
         self.requires("sml/1.1.8") #DO NOT CHANGE THIS. starting with version 1.1.9 process_event returns ins some cases false where before it returned true
